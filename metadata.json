@@ -1,0 +1,7 @@
+{
+  "name": "MyShop - Business Management Suite",
+  "description": "A comprehensive local business management platform with AI assistance, inventory tracking, sales reporting, and bilingual support (English/Bengali).",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
