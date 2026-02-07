@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
-  ResponsiveContainer, AreaChart, Area, Cell
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, 
+  ResponsiveContainer
 } from 'recharts';
 import { BusinessState, Language } from '../types';
 import { TRANSLATIONS } from '../constants';
@@ -10,7 +10,7 @@ import { TRANSLATIONS } from '../constants';
 interface Props {
   state: BusinessState;
   lang: Language;
-  onNavigate?: (page: string) => void;
+  onNavigate?: (page: string, params?: any) => void;
 }
 
 const Dashboard: React.FC<Props> = ({ state, lang, onNavigate }) => {
@@ -28,7 +28,6 @@ const Dashboard: React.FC<Props> = ({ state, lang, onNavigate }) => {
       value: `৳${totalSales.toLocaleString()}`, 
       icon: 'fa-money-bill-trend-up', 
       color: 'bg-indigo-500', 
-      textColor: 'text-indigo-600',
       target: 'sales' 
     },
     { 
@@ -36,7 +35,6 @@ const Dashboard: React.FC<Props> = ({ state, lang, onNavigate }) => {
       value: inventoryCount, 
       icon: 'fa-boxes-stacked', 
       color: 'bg-blue-500', 
-      textColor: 'text-blue-600',
       target: 'inventory' 
     },
     { 
@@ -44,7 +42,6 @@ const Dashboard: React.FC<Props> = ({ state, lang, onNavigate }) => {
       value: customerCount, 
       icon: 'fa-users', 
       color: 'bg-violet-500', 
-      textColor: 'text-violet-600',
       target: 'customers' 
     },
     { 
@@ -52,7 +49,6 @@ const Dashboard: React.FC<Props> = ({ state, lang, onNavigate }) => {
       value: `৳${totalExpenses.toLocaleString()}`, 
       icon: 'fa-receipt', 
       color: 'bg-rose-500', 
-      textColor: 'text-rose-600',
       target: 'expenses' 
     },
     { 
@@ -60,12 +56,10 @@ const Dashboard: React.FC<Props> = ({ state, lang, onNavigate }) => {
       value: categoryCount, 
       icon: 'fa-folder-tree', 
       color: 'bg-amber-500', 
-      textColor: 'text-amber-600',
       target: 'inventory' 
     },
   ];
 
-  // Professional sample data for the revenue area chart
   const revenueData = [
     { name: 'Mon', revenue: 4200, expenses: 2400 },
     { name: 'Tue', revenue: 3800, expenses: 1398 },
@@ -101,7 +95,6 @@ const Dashboard: React.FC<Props> = ({ state, lang, onNavigate }) => {
         </div>
       </div>
 
-      {/* KPI Section with 5 columns on desktop */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
         {kpis.map((kpi, idx) => (
           <button 
@@ -109,18 +102,14 @@ const Dashboard: React.FC<Props> = ({ state, lang, onNavigate }) => {
             onClick={() => onNavigate?.(kpi.target)}
             className="group bg-white p-6 rounded-[24px] shadow-sm border border-slate-100 flex flex-col gap-4 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/5 hover:-translate-y-1 transition-all text-left relative overflow-hidden"
           >
-            {/* Subtle decorative background circle */}
             <div className={`absolute -right-4 -top-4 w-20 h-20 ${kpi.color} opacity-[0.03] rounded-full group-hover:scale-150 transition-transform duration-500`}></div>
-            
-            <div className={`${kpi.color} w-12 h-12 rounded-2xl flex items-center justify-center text-white text-xl shadow-lg shadow-${kpi.color.split('-')[1]}-500/20 shrink-0`}>
+            <div className={`${kpi.color} w-12 h-12 rounded-2xl flex items-center justify-center text-white text-xl shadow-lg shadow-blue-500/20 shrink-0`}>
               <i className={`fa-solid ${kpi.icon}`}></i>
             </div>
-            
             <div className="space-y-1">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{kpi.label}</p>
               <h3 className="text-2xl font-black text-slate-900 tracking-tight">{kpi.value}</h3>
             </div>
-            
             <div className="mt-2 flex items-center text-[10px] font-bold text-slate-400 group-hover:text-indigo-500 transition-colors uppercase tracking-widest">
               <span>View Details</span>
               <i className="fa-solid fa-arrow-right ml-2 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1"></i>
@@ -130,25 +119,13 @@ const Dashboard: React.FC<Props> = ({ state, lang, onNavigate }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Revenue Chart */}
         <div className="lg:col-span-2 bg-white p-8 rounded-[32px] shadow-sm border border-slate-100">
           <div className="flex items-center justify-between mb-8">
             <div>
               <h3 className="text-xl font-black text-slate-900 tracking-tight">Revenue Analytics</h3>
               <p className="text-sm text-slate-400 font-medium">Daily performance tracking</p>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-tighter">Sales</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-slate-200 rounded-full"></div>
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-tighter">Expenses</span>
-              </div>
-            </div>
           </div>
-          
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -159,46 +136,20 @@ const Dashboard: React.FC<Props> = ({ state, lang, onNavigate }) => {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{fill: '#94a3b8', fontSize: 11, fontWeight: 700}} 
-                  dy={10} 
-                />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{fill: '#94a3b8', fontSize: 11, fontWeight: 700}} 
-                />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 11, fontWeight: 700}} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 11, fontWeight: 700}} />
                 <Tooltip 
                   contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px'}}
                   itemStyle={{fontWeight: 800, fontSize: '12px'}}
                   labelStyle={{fontWeight: 900, marginBottom: '4px', color: '#1e293b'}}
                 />
-                <Area 
-                  type="monotone" 
-                  dataKey="revenue" 
-                  stroke="#6366f1" 
-                  strokeWidth={4} 
-                  fillOpacity={1} 
-                  fill="url(#colorRevenue)" 
-                  animationDuration={2000}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="expenses" 
-                  stroke="#e2e8f0" 
-                  strokeWidth={2} 
-                  fillOpacity={0} 
-                  animationDuration={2500}
-                />
+                <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={4} fillOpacity={1} fill="url(#colorRevenue)" animationDuration={2000} />
+                <Area type="monotone" dataKey="expenses" stroke="#e2e8f0" strokeWidth={2} fillOpacity={0} animationDuration={2500} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Stock Status & Alerts */}
         <div className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 flex flex-col">
           <div className="mb-8">
             <h3 className="text-xl font-black text-slate-900 tracking-tight">{t.low_stock}</h3>
@@ -208,7 +159,11 @@ const Dashboard: React.FC<Props> = ({ state, lang, onNavigate }) => {
           <div className="flex-1 space-y-4 overflow-y-auto max-h-[340px] pr-2 custom-scrollbar">
             {state.inventory.filter(i => i.quantity < 10).length > 0 ? (
               state.inventory.filter(i => i.quantity < 10).map(item => (
-                <div key={item.id} className="group flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-rose-50 hover:border-rose-100 transition-all cursor-pointer">
+                <div 
+                  key={item.id} 
+                  onClick={() => onNavigate?.('inventory', { editId: item.id })}
+                  className="group flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-rose-50 hover:border-rose-100 transition-all cursor-pointer"
+                >
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-white shadow-sm text-rose-500 rounded-xl flex items-center justify-center group-hover:bg-rose-500 group-hover:text-white transition-colors">
                       <i className="fa-solid fa-triangle-exclamation"></i>
@@ -226,11 +181,10 @@ const Dashboard: React.FC<Props> = ({ state, lang, onNavigate }) => {
               ))
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-emerald-50/50 rounded-3xl border border-emerald-100/50">
-                <div className="w-16 h-16 bg-white shadow-xl shadow-emerald-500/10 rounded-full flex items-center justify-center text-emerald-500 text-2xl mb-4 animate-bounce duration-1000">
+                <div className="w-16 h-16 bg-white shadow-xl shadow-emerald-500/10 rounded-full flex items-center justify-center text-emerald-500 text-2xl mb-4">
                   <i className="fa-solid fa-check"></i>
                 </div>
                 <p className="font-black text-emerald-800 text-lg">All items in stock</p>
-                <p className="text-xs text-emerald-600/70 font-bold uppercase tracking-widest mt-1">Excellent Management!</p>
               </div>
             )}
           </div>

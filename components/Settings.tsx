@@ -28,22 +28,57 @@ const Settings: React.FC<Props> = ({ user, onUpdateUser, onLoadDemo, onClearData
     setIsEditing(false);
   };
 
+  const processAndUploadImage = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        // Create canvas for compression
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 400;
+        const MAX_HEIGHT = 400;
+        let width = img.width;
+        let height = img.height;
+
+        // Calculate aspect ratio
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          // Compress to JPEG with 0.7 quality
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          onUpdateUser({
+            ...user,
+            profilePicture: compressedBase64
+          });
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) { // 2MB limit
-        alert("Image too large. Please select a file smaller than 2MB.");
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit for selection, then we compress
+        alert("Image too large. Please select a file smaller than 5MB.");
         return;
       }
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        onUpdateUser({
-          ...user,
-          profilePicture: reader.result as string
-        });
-      };
-      reader.readAsDataURL(file);
+      processAndUploadImage(file);
     }
   };
 
@@ -102,7 +137,7 @@ const Settings: React.FC<Props> = ({ user, onUpdateUser, onLoadDemo, onClearData
             </div>
             <div className="text-center sm:text-left">
               <h4 className="font-bold text-slate-800">Profile Picture</h4>
-              <p className="text-sm text-slate-500 mb-2">JPG or PNG. Max size 2MB.</p>
+              <p className="text-sm text-slate-500 mb-2">Resized automatically. Max original 5MB.</p>
               <div className="flex gap-2 justify-center sm:justify-start">
                 <button 
                   onClick={() => fileInputRef.current?.click()}
@@ -211,7 +246,7 @@ const Settings: React.FC<Props> = ({ user, onUpdateUser, onLoadDemo, onClearData
           </div>
           <div className="flex justify-between">
             <span>Data Storage</span>
-            <span className="font-medium text-slate-700">User-Keyed LocalStorage</span>
+            <span className="font-medium text-slate-700">Supabase DB</span>
           </div>
           <div className="flex justify-between">
             <span>Language Support</span>
