@@ -24,6 +24,7 @@ const App: React.FC = () => {
   const [navParams, setNavParams] = useState<any>(null); // For passing data between pages
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
   // Business State
   const [businessState, setBusinessState] = useState<BusinessState>({
@@ -36,12 +37,14 @@ const App: React.FC = () => {
   const handleNavigate = (page: string, params?: any) => {
     setCurrentPage(page);
     setNavParams(params || null);
+    setIsProfileDropdownOpen(false); // Close dropdown on navigation
   };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
     setBusinessState({ inventory: [], sales: [], customers: [], expenses: [] });
+    setIsProfileDropdownOpen(false);
   };
 
   // Fetch all business data from Supabase
@@ -283,7 +286,7 @@ const App: React.FC = () => {
         lang={lang}
       />
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 bg-white border-b flex items-center justify-between px-6 sticky top-0 z-10">
+        <header className="h-16 bg-white border-b flex items-center justify-between px-6 sticky top-0 z-40">
           <button 
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             className="p-2 hover:bg-slate-100 rounded-md md:hidden"
@@ -298,27 +301,55 @@ const App: React.FC = () => {
             >
               {t.language_toggle}
             </button>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 pr-3 border-r border-slate-100">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold overflow-hidden border border-slate-100 shadow-sm">
+            
+            {/* User Dropdown Container */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                className={`flex items-center gap-2 p-1.5 pr-3 rounded-xl transition-all duration-200 ${isProfileDropdownOpen ? 'bg-slate-100 ring-1 ring-slate-200' : 'hover:bg-slate-50'}`}
+              >
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white text-xs font-bold overflow-hidden border border-slate-100 shadow-sm">
                   {user.profilePicture ? (
                     <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
                     user.businessName.charAt(0)
                   )}
                 </div>
-                <div className="hidden sm:flex flex-col items-start leading-none">
-                  <span className="font-bold text-slate-700 text-sm">{user.businessName}</span>
-                  <span className="text-[10px] text-slate-400 font-medium">{user.email}</span>
+                <div className="hidden sm:flex flex-col items-start leading-none text-left">
+                  <span className="font-bold text-slate-700 text-sm truncate max-w-[120px]">{user.businessName}</span>
+                  <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tight">Owner</span>
                 </div>
-              </div>
-              <button 
-                onClick={handleLogout}
-                className="text-slate-400 hover:text-rose-500 transition-colors p-2"
-                title={t.logout}
-              >
-                <i className="fa-solid fa-arrow-right-from-bracket"></i>
+                <i className={`fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-300 ${isProfileDropdownOpen ? 'rotate-180' : ''}`}></i>
               </button>
+
+              {/* Dropdown Menu */}
+              {isProfileDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsProfileDropdownOpen(false)}></div>
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="px-4 py-3 border-b border-slate-50 mb-1">
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Logged in as</p>
+                      <p className="text-sm font-bold text-slate-800 truncate">{user.email}</p>
+                    </div>
+                    
+                    <button 
+                      onClick={() => handleNavigate('settings')}
+                      className="w-full px-4 py-2.5 text-left text-sm text-slate-600 hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                    >
+                      <i className="fa-solid fa-gear text-slate-400"></i>
+                      <span>{t.settings}</span>
+                    </button>
+                    
+                    <button 
+                      onClick={handleLogout}
+                      className="w-full px-4 py-2.5 text-left text-sm text-rose-600 hover:bg-rose-50 flex items-center gap-3 transition-colors font-medium"
+                    >
+                      <i className="fa-solid fa-arrow-right-from-bracket text-rose-400"></i>
+                      <span>{t.logout}</span>
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </header>
