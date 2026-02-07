@@ -21,6 +21,19 @@ const Auth: React.FC<Props> = ({ onLogin, lang, toggleLanguage }) => {
     businessName: ''
   });
 
+  const handleDemoAccess = () => {
+    setIsLoading(true);
+    // Simulate a successful login for a demo account
+    setTimeout(() => {
+      onLogin({
+        id: 'demo-user-id',
+        email: 'demo@myshop.com',
+        businessName: 'My Demo Shop'
+      });
+      setIsLoading(false);
+    }, 800);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -83,7 +96,7 @@ const Auth: React.FC<Props> = ({ onLogin, lang, toggleLanguage }) => {
     },
     bn: {
       headline: "আপনার ব্যবসার সকল হিসাব রাখুন এক জায়গায়।",
-      subtext: "একটি সহজ ও আধুনিক ব্যবসা পরিচালনা পদ্ধতি যা আপনার সময় বাঁচাবে এবং ব্যবসার গতি ও লাভ বহুগুণ বাড়িয়ে তুলবে।"
+      subtext: "একটি সহজ ও আধুনিক ব্যবসা পরিচালনা পদ্ধতি যা আপনার সময় বাঁচাবে এবং ব্যবসার গতি ও লাভ বহুণ বাড়িয়ে তুলবে।"
     }
   };
 
@@ -222,23 +235,37 @@ const Auth: React.FC<Props> = ({ onLogin, lang, toggleLanguage }) => {
                 </div>
               </div>
 
-              <button 
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-[#4F46E5] text-white py-5 rounded-2xl font-black text-xl hover:bg-[#4338CA] active:scale-[0.98] transition-all shadow-xl shadow-[#4F46E5]/20 mt-8 disabled:opacity-70 disabled:pointer-events-none flex items-center justify-center gap-4 group h-[74px]"
-              >
-                {isLoading ? (
-                  <i className="fa-solid fa-circle-notch animate-spin text-2xl"></i>
-                ) : (
-                  <>
-                    <span>{isLogin ? (lang === 'bn' ? 'লগইন' : 'Login') : (lang === 'bn' ? 'অ্যাকাউন্ট খুলুন' : 'Create Account')}</span>
-                    <i className="fa-solid fa-arrow-right text-sm opacity-50 group-hover:translate-x-2 transition-transform"></i>
-                  </>
+              <div className="flex flex-col gap-3 mt-8">
+                <button 
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-[#4F46E5] text-white py-5 rounded-2xl font-black text-xl hover:bg-[#4338CA] active:scale-[0.98] transition-all shadow-xl shadow-[#4F46E5]/20 disabled:opacity-70 disabled:pointer-events-none flex items-center justify-center gap-4 group h-[74px]"
+                >
+                  {isLoading ? (
+                    <i className="fa-solid fa-circle-notch animate-spin text-2xl"></i>
+                  ) : (
+                    <>
+                      <span>{isLogin ? (lang === 'bn' ? 'লগইন' : 'Login') : (lang === 'bn' ? 'অ্যাকাউন্ট খুলুন' : 'Create Account')}</span>
+                      <i className="fa-solid fa-arrow-right text-sm opacity-50 group-hover:translate-x-2 transition-transform"></i>
+                    </>
+                  )}
+                </button>
+
+                {isLogin && (
+                  <button 
+                    type="button"
+                    onClick={handleDemoAccess}
+                    disabled={isLoading}
+                    className="w-full bg-slate-50 text-slate-700 py-4 rounded-2xl font-bold text-sm hover:bg-slate-100 transition-all border border-slate-200 flex items-center justify-center gap-3"
+                  >
+                    <i className="fa-solid fa-flask-vial text-indigo-500"></i>
+                    <span>Demo Access (Quick Preview)</span>
+                  </button>
                 )}
-              </button>
+              </div>
             </form>
 
-            <div className="mt-16 text-center">
+            <div className="mt-12 text-center">
               <p className="text-slate-500 font-medium text-lg">
                 {isLogin 
                   ? (lang === 'bn' ? 'নতুন ইউজার?' : "Don't have an account?") 
