@@ -137,11 +137,10 @@ const App: React.FC = () => {
         });
         
         if (addedOrUpdated.length > 0) {
-          // Map to database format: include both 'categories' array and 'category' fallback string
           const dbInventory = addedOrUpdated.map(i => ({
             ...i,
             user_id: userId,
-            category: i.categories[0] || '' // Fallback for old schema
+            category: i.categories[0] || '' 
           }));
           const { error } = await supabase.from('inventory').upsert(dbInventory);
           if (error) throw error;
@@ -153,12 +152,17 @@ const App: React.FC = () => {
         }
       }
 
-      // Sync Sales (Appending only)
+      // Sync Sales (Detecting Additions and Deletions)
       if (newState.sales !== prev.sales) {
         const added = newState.sales.filter(n => !prev.sales.find(o => o.id === n.id));
         if (added.length > 0) {
           const { error } = await supabase.from('sales').insert(added.map(s => ({ ...s, user_id: userId })));
           if (error) throw error;
+        }
+
+        const removed = prev.sales.filter(o => !newState.sales.find(n => n.id === o.id));
+        for (const sale of removed) {
+          await supabase.from('sales').delete().eq('id', sale.id).eq('user_id', userId);
         }
       }
 
@@ -195,7 +199,6 @@ const App: React.FC = () => {
       }
     } catch (error) {
       console.error("Supabase sync error:", error);
-      // Optional: Rollback local state or show notification here
     } finally {
       setIsSyncing(false);
     }

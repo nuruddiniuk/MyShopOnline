@@ -93,6 +93,16 @@ const Sales: React.FC<Props> = ({ state, setState, lang }) => {
     ));
   };
 
+  const handleDeleteSale = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (window.confirm('Are you sure you want to delete this sale record?')) {
+      setState({
+        ...state,
+        sales: state.sales.filter(s => s.id !== id)
+      });
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (currentItems.length === 0 || !customerPhone) return;
@@ -165,6 +175,7 @@ const Sales: React.FC<Props> = ({ state, setState, lang }) => {
           <p className="text-sm text-slate-500">{state.sales.length} transactions recorded</p>
         </div>
         <button 
+          type="button"
           onClick={() => setIsModalOpen(true)}
           className="flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
         >
@@ -182,12 +193,13 @@ const Sales: React.FC<Props> = ({ state, setState, lang }) => {
                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t.customers}</th>
                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t.amount}</th>
                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t.status}</th>
+                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {state.sales.length > 0 ? (
                 state.sales.map((sale) => (
-                  <tr key={sale.id} className="hover:bg-slate-50/50 transition-colors">
+                  <tr key={sale.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-6 py-4 text-slate-500">{sale.date}</td>
                     <td className="px-6 py-4 font-medium text-slate-700">{sale.customerName}</td>
                     <td className="px-6 py-4 font-bold text-slate-900">৳{sale.totalAmount.toLocaleString()}</td>
@@ -196,11 +208,21 @@ const Sales: React.FC<Props> = ({ state, setState, lang }) => {
                         Completed
                       </span>
                     </td>
+                    <td className="px-6 py-4 text-center">
+                      <button 
+                        type="button"
+                        onClick={(e) => handleDeleteSale(e, sale.id)}
+                        className="p-2 text-slate-400 hover:text-rose-500 transition-colors"
+                        title="Delete Sale"
+                      >
+                        <i className="fa-solid fa-trash-can"></i>
+                      </button>
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="px-6 py-20 text-center text-slate-400">
+                  <td colSpan={5} className="px-6 py-20 text-center text-slate-400">
                     <div className="flex flex-col items-center opacity-40">
                       <i className="fa-solid fa-receipt text-5xl mb-4"></i>
                       <p className="text-lg font-medium">{t.no_data}</p>
@@ -222,7 +244,7 @@ const Sales: React.FC<Props> = ({ state, setState, lang }) => {
                 <h3 className="text-xl font-bold text-slate-800">{t.add_sale}</h3>
                 <p className="text-xs text-slate-500">Quickly add items and manage customers</p>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-2">
+              <button type="button" onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-2">
                 <i className="fa-solid fa-xmark text-xl"></i>
               </button>
             </div>

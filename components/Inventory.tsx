@@ -20,13 +20,12 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
   const fileInputRef = useRef<HTMLInputElement>(null);
   const categoryInputRef = useRef<HTMLInputElement>(null);
   
-  // Fix: Updated formData and catInput to handle multiple categories
   const [formData, setFormData] = useState<Partial<Product>>({
     name: '', sku: '', price: 0, cost: 0, quantity: 0, categories: [], image: ''
   });
   const [catInput, setCatInput] = useState('');
 
-  // Fix: Handle deep linking/navigation parameters (Auto-edit product from Dashboard)
+  // Handle deep linking/navigation parameters (Auto-edit product from Dashboard)
   useEffect(() => {
     if (initialParams?.editId && state.inventory.length > 0) {
       const product = state.inventory.find(p => p.id === initialParams.editId);
@@ -40,14 +39,12 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
     }
   }, [initialParams, state.inventory, clearParams]);
 
-  // Fix: Updated memoized list of all unique categories
   const allAvailableCategories = useMemo(() => {
     const dynamicCats = state.inventory.flatMap(i => i.categories);
     const allCats = new Set([...PRODUCT_CATEGORIES, ...dynamicCats].filter(Boolean));
     return Array.from(allCats).sort();
   }, [state.inventory]);
 
-  // Fix: Filter logic updated to search through categories array
   const filteredInventory = useMemo(() => {
     return state.inventory.filter(item => {
       const matchesSearch = 
@@ -81,7 +78,6 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
     setIsModalOpen(true);
   };
 
-  // Fix: Helper functions for managing multi-select categories
   const handleAddCategory = (cat: string) => {
     const trimmed = cat.trim();
     if (trimmed && !formData.categories?.includes(trimmed)) {
@@ -100,7 +96,8 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
     });
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
     if (window.confirm('Are you sure you want to delete this product?')) {
       setState({
         ...state,
@@ -129,7 +126,6 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
     if (!formData.name) return;
 
     if (editingProduct) {
-      // Fix: Updated submission logic to use categories array
       const updatedInventory = state.inventory.map(p => 
         p.id === editingProduct.id 
           ? { 
@@ -186,6 +182,7 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
           </div>
           
           <button 
+            type="button"
             onClick={() => setShowLowStockOnly(!showLowStockOnly)}
             className={`px-4 py-2 rounded-lg font-medium transition-colors border ${
               showLowStockOnly 
@@ -198,6 +195,7 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
           </button>
 
           <button 
+            type="button"
             onClick={openAddModal}
             className="flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
           >
@@ -246,7 +244,6 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-1 max-w-[200px]">
-                        {/* Fix: Render multiple category badges */}
                         {item.categories.map(cat => (
                           <span key={cat} className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase rounded tracking-wider whitespace-nowrap">
                             {cat}
@@ -268,10 +265,10 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => openEditModal(item)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors">
+                        <button type="button" onClick={() => openEditModal(item)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors">
                           <i className="fa-solid fa-pen-to-square"></i>
                         </button>
-                        <button onClick={() => handleDelete(item.id)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
+                        <button type="button" onClick={(e) => handleDelete(e, item.id)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
                           <i className="fa-solid fa-trash-can"></i>
                         </button>
                       </div>
@@ -297,7 +294,7 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
           <div className="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl p-8 animate-in zoom-in-95 duration-200 overflow-y-auto max-h-[95vh]">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold text-slate-800">{editingProduct ? 'Update Product' : t.add_product}</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-2"><i className="fa-solid fa-xmark text-xl"></i></button>
+              <button type="button" onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-2"><i className="fa-solid fa-xmark text-xl"></i></button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -319,7 +316,6 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
                   <input type="text" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                 </div>
                 
-                {/* Fix: Added category management UI with chips and suggestions */}
                 <div className="md:col-span-2">
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Categories</label>
                   <div className="flex flex-wrap gap-2 mb-3">
