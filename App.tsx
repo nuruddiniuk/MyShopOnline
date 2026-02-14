@@ -180,7 +180,7 @@ const App: React.FC = () => {
             quantity: i.quantity,
             image: i.image,
             categories: i.categories,
-            category: i.categories[0] || '',
+            category: i.categories[0] || '', // Support for legacy single-string category column
             user_id: userId
           }));
           const { error } = await supabase.from('inventory').upsert(dbInventory);

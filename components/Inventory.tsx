@@ -25,6 +25,7 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
   });
   const [catInput, setCatInput] = useState('');
 
+  // Handle deep linking/navigation parameters (Auto-edit product from Dashboard)
   useEffect(() => {
     if (initialParams?.editId && state.inventory.length > 0) {
       const product = state.inventory.find(p => p.id === initialParams.editId);
@@ -55,7 +56,8 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
     });
   }, [state.inventory, searchQuery, showLowStockOnly]);
 
-  const openAddModal = () => {
+  const openAddModal = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
     setEditingProduct(null);
     setFormData({ name: '', sku: '', price: 0, cost: 0, quantity: 0, categories: [], image: '' });
     setCatInput('');
@@ -313,7 +315,7 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="md:col-span-2">
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-2">{t.name}</label>
-                  <input type="text" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                  <input type="text" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                 </div>
                 
                 <div className="md:col-span-2">
@@ -359,15 +361,15 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
 
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Quantity</label>
-                  <input type="number" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" value={formData.quantity} onChange={e => setFormData({...formData, quantity: Number(e.target.value)})} />
+                  <input type="number" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.quantity} onChange={e => setFormData({...formData, quantity: Number(e.target.value)})} />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Cost (৳)</label>
-                  <input type="number" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" value={formData.cost} onChange={e => setFormData({...formData, cost: Number(e.target.value)})} />
+                  <input type="number" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.cost} onChange={e => setFormData({...formData, cost: Number(e.target.value)})} />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Price (৳)</label>
-                  <input type="number" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} />
+                  <input type="number" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} />
                 </div>
               </div>
 
