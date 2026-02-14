@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { BusinessState, Language, Product } from '../types';
 import { TRANSLATIONS, PRODUCT_CATEGORIES } from '../constants';
@@ -57,7 +56,10 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
   }, [state.inventory, searchQuery, showLowStockOnly]);
 
   const openAddModal = (e?: React.MouseEvent) => {
-    if (e) e.preventDefault();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setEditingProduct(null);
     setFormData({ name: '', sku: '', price: 0, cost: 0, quantity: 0, categories: [], image: '' });
     setCatInput('');
@@ -198,7 +200,7 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
 
           <button 
             type="button"
-            onClick={openAddModal}
+            onClick={(e) => openAddModal(e)}
             className="flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
           >
             <i className="fa-solid fa-plus"></i>
