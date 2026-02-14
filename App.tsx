@@ -21,10 +21,11 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [lang, setLang] = useState<Language>('en');
   const [currentPage, setCurrentPage] = useState<string>('dashboard');
-  const [navParams, setNavParams] = useState<any>(null); // For passing data between pages
+  const [navParams, setNavParams] = useState<any>(null); 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isInitializing, setIsInitializing] = useState(true);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Business State
   const [businessState, setBusinessState] = useState<BusinessState>({
@@ -37,7 +38,7 @@ const App: React.FC = () => {
   const handleNavigate = (page: string, params?: any) => {
     setCurrentPage(page);
     setNavParams(params || null);
-    setIsProfileDropdownOpen(false); // Close dropdown on navigation
+    setIsProfileDropdownOpen(false);
   };
 
   const handleLogout = async () => {
@@ -47,7 +48,6 @@ const App: React.FC = () => {
     setIsProfileDropdownOpen(false);
   };
 
-  // Fetch all business data from Supabase
   const fetchData = useCallback(async (userId: string) => {
     if (userId.startsWith('demo-')) return;
 
@@ -74,7 +74,6 @@ const App: React.FC = () => {
           profilePicture: prof.data.profile_picture || undefined
         } : null);
       } else {
-        // Ensure name is at least 'MyShop' if no profile exists
         setUser(prev => prev ? { ...prev, businessName: prev.businessName === 'Loading...' ? 'MyShop' : prev.businessName } : null);
       }
     } catch (err) {
@@ -175,59 +174,76 @@ const App: React.FC = () => {
 
   const handleLoadDemo = async () => {
     if (!user) return;
+    setIsSyncing(true);
     const userId = user.id;
 
     if (userId.startsWith('demo-')) {
       setBusinessState({
-        inventory: [...DEMO_DATA.inventory] as Product[],
-        sales: [...DEMO_DATA.sales] as Sale[],
-        customers: [...DEMO_DATA.customers] as Customer[],
-        expenses: [...DEMO_DATA.expenses] as Expense[]
+        inventory: JSON.parse(JSON.stringify(DEMO_DATA.inventory)),
+        sales: JSON.parse(JSON.stringify(DEMO_DATA.sales)),
+        customers: JSON.parse(JSON.stringify(DEMO_DATA.customers)),
+        expenses: JSON.parse(JSON.stringify(DEMO_DATA.expenses))
       });
+      setIsSyncing(false);
       return;
     }
 
-    const invWithUser = DEMO_DATA.inventory.map(i => ({ ...i, user_id: userId }));
-    const salesWithUser = DEMO_DATA.sales.map(s => ({ ...s, user_id: userId }));
-    const custWithUser = DEMO_DATA.customers.map(c => ({ ...c, user_id: userId }));
-    const expWithUser = DEMO_DATA.expenses.map(e => ({ ...e, user_id: userId }));
+    try {
+      const invWithUser = DEMO_DATA.inventory.map(i => ({ ...i, user_id: userId }));
+      const salesWithUser = DEMO_DATA.sales.map(s => ({ ...s, user_id: userId }));
+      const custWithUser = DEMO_DATA.customers.map(c => ({ ...c, user_id: userId }));
+      const expWithUser = DEMO_DATA.expenses.map(e => ({ ...e, user_id: userId }));
 
-    await Promise.all([
-      supabase.from('inventory').upsert(invWithUser),
-      supabase.from('sales').upsert(salesWithUser),
-      supabase.from('customers').upsert(custWithUser),
-      supabase.from('expenses').upsert(expWithUser)
-    ]);
-    
-    fetchData(userId);
+      await Promise.allSettled([
+        supabase.from('inventory').upsert(invWithUser),
+        supabase.from('sales').upsert(salesWithUser),
+        supabase.from('customers').upsert(custWithUser),
+        supabase.from('expenses').upsert(expWithUser)
+      ]);
+      
+      await fetchData(userId);
+    } catch (err) {
+      console.error("Demo load failed:", err);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const handleClearData = async () => {
     if (!user) return;
+    setIsSyncing(true);
     const userId = user.id;
-    if (!userId.startsWith('demo-')) {
-      await Promise.all([
-        supabase.from('inventory').delete().eq('user_id', userId),
-        supabase.from('sales').delete().eq('user_id', userId),
-        supabase.from('customers').delete().eq('user_id', userId),
-        supabase.from('expenses').delete().eq('user_id', userId)
-      ]);
-    }
+    
+    // Clear local state immediately for instant feedback
     setBusinessState({ inventory: [], sales: [], customers: [], expenses: [] });
+
+    try {
+      if (!userId.startsWith('demo-')) {
+        await Promise.allSettled([
+          supabase.from('inventory').delete().eq('user_id', userId),
+          supabase.from('sales').delete().eq('user_id', userId),
+          supabase.from('customers').delete().eq('user_id', userId),
+          supabase.from('expenses').delete().eq('user_id', userId)
+        ]);
+      }
+    } catch (err) {
+      console.error("Clear data failed on remote:", err);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const handleUpdateUser = async (updatedUser: User) => {
     setUser(updatedUser);
     if (updatedUser.id.startsWith('demo-')) return;
     try {
-      const { error } = await supabase.from('profiles').upsert({
+      await supabase.from('profiles').upsert({
         id: updatedUser.id,
         business_name: updatedUser.businessName,
         profile_picture: updatedUser.profilePicture || null 
       });
-      if (error) console.error("Profile sync error:", error.message);
     } catch (error) {
-      console.error("Critical profile update failure:", error);
+      console.error("Profile update failure:", error);
     }
   };
 
@@ -263,6 +279,7 @@ const App: React.FC = () => {
           onLoadDemo={handleLoadDemo} 
           onClearData={handleClearData} 
           lang={lang} 
+          isSyncing={isSyncing}
         />
       );
       default: return <Dashboard state={businessState} lang={lang} onNavigate={handleNavigate} />;
@@ -302,7 +319,6 @@ const App: React.FC = () => {
               {t.language_toggle}
             </button>
             
-            {/* User Dropdown Container */}
             <div className="relative">
               <button 
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
@@ -322,7 +338,6 @@ const App: React.FC = () => {
                 <i className={`fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-300 ${isProfileDropdownOpen ? 'rotate-180' : ''}`}></i>
               </button>
 
-              {/* Dropdown Menu */}
               {isProfileDropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsProfileDropdownOpen(false)}></div>

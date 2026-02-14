@@ -38,7 +38,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, currentPage, setCurrentPage, 
         <span className="text-xl font-bold text-white tracking-tight">MyShop</span>
       </div>
 
-      <nav className="flex-1 px-4 py-6 space-y-2">
+      <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
         {menuItems.map((item) => (
           <button
             key={item.id}
@@ -59,14 +59,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, currentPage, setCurrentPage, 
         ))}
       </nav>
 
-      <div className="p-4 border-t border-slate-800">
-        <button
-          onClick={onLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
-        >
-          <i className="fa-solid fa-arrow-right-from-bracket w-5"></i>
-          <span>{t.logout}</span>
-        </button>
+      <div className="p-6 border-t border-slate-800">
+        <div className="bg-slate-800/50 p-3 rounded-xl">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 text-center">Version 1.0 Stable</p>
+        </div>
       </div>
     </aside>
   );

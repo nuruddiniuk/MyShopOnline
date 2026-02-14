@@ -9,9 +9,10 @@ interface Props {
   onLoadDemo: () => void;
   onClearData: () => void;
   lang: Language;
+  isSyncing?: boolean;
 }
 
-const Settings: React.FC<Props> = ({ user, onUpdateUser, onLoadDemo, onClearData, lang }) => {
+const Settings: React.FC<Props> = ({ user, onUpdateUser, onLoadDemo, onClearData, lang, isSyncing }) => {
   const t = TRANSLATIONS[lang];
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(user.businessName);
@@ -33,14 +34,12 @@ const Settings: React.FC<Props> = ({ user, onUpdateUser, onLoadDemo, onClearData
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
-        // Create canvas for compression
         const canvas = document.createElement('canvas');
         const MAX_WIDTH = 400;
         const MAX_HEIGHT = 400;
         let width = img.width;
         let height = img.height;
 
-        // Calculate aspect ratio
         if (width > height) {
           if (width > MAX_WIDTH) {
             height *= MAX_WIDTH / width;
@@ -58,7 +57,6 @@ const Settings: React.FC<Props> = ({ user, onUpdateUser, onLoadDemo, onClearData
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
-          // Compress to JPEG with 0.7 quality
           const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
           onUpdateUser({
             ...user,
@@ -74,7 +72,7 @@ const Settings: React.FC<Props> = ({ user, onUpdateUser, onLoadDemo, onClearData
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit for selection, then we compress
+      if (file.size > 5 * 1024 * 1024) {
         alert("Image too large. Please select a file smaller than 5MB.");
         return;
       }
@@ -96,7 +94,6 @@ const Settings: React.FC<Props> = ({ user, onUpdateUser, onLoadDemo, onClearData
         <p className="text-slate-500">Manage your business profile and data preferences</p>
       </div>
 
-      {/* Business Profile Section */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden transition-all">
         <div className="p-6 border-b border-slate-100 flex justify-between items-center">
           <h3 className="text-lg font-bold text-slate-800">Business Profile</h3>
@@ -206,27 +203,36 @@ const Settings: React.FC<Props> = ({ user, onUpdateUser, onLoadDemo, onClearData
         </div>
       </div>
 
-      {/* Data Management Section */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 bg-slate-50">
-          <h3 className="text-lg font-bold text-slate-800">{t.demo_data}</h3>
-          <p className="text-sm text-slate-500 mt-1">Populate or clear your local database for testing</p>
+        <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+          <div>
+            <h3 className="text-lg font-bold text-slate-800">{t.demo_data}</h3>
+            <p className="text-sm text-slate-500 mt-1">Populate or clear your local database for testing</p>
+          </div>
+          {isSyncing && (
+            <div className="flex items-center gap-2 text-blue-600 text-sm font-bold animate-pulse">
+              <i className="fa-solid fa-circle-notch animate-spin"></i>
+              <span>Syncing...</span>
+            </div>
+          )}
         </div>
         <div className="p-6 flex flex-col sm:flex-row gap-4">
           <button 
+            disabled={isSyncing}
             onClick={onLoadDemo}
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
+            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <i className="fa-solid fa-database"></i>
             {t.load_demo}
           </button>
           <button 
+            disabled={isSyncing}
             onClick={() => {
               if (window.confirm("Are you sure you want to clear all business data? This action cannot be undone.")) {
                 onClearData();
               }
             }}
-            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border-2 border-rose-100 text-rose-600 rounded-xl font-bold hover:bg-rose-50 transition-all"
+            className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border-2 border-rose-100 text-rose-600 rounded-xl font-bold hover:bg-rose-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <i className="fa-solid fa-trash-can"></i>
             {t.clear_demo}
@@ -234,7 +240,6 @@ const Settings: React.FC<Props> = ({ user, onUpdateUser, onLoadDemo, onClearData
         </div>
       </div>
 
-      {/* System Info Section */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div className="p-6 border-b border-slate-100">
           <h3 className="text-lg font-bold text-slate-800">System Information</h3>
