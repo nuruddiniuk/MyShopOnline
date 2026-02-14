@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { BusinessState, Language, Product } from '../types';
 import { TRANSLATIONS, PRODUCT_CATEGORIES } from '../constants';
@@ -24,7 +25,6 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
   });
   const [catInput, setCatInput] = useState('');
 
-  // Handle deep linking/navigation parameters (Auto-edit product from Dashboard)
   useEffect(() => {
     if (initialParams?.editId && state.inventory.length > 0) {
       const product = state.inventory.find(p => p.id === initialParams.editId);
@@ -101,7 +101,7 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
     if (window.confirm('Are you sure you want to delete this product?')) {
       setState({
         ...state,
-        inventory: state.inventory.filter(item => item.id !== id)
+        inventory: state.inventory.filter(p => p.id !== id)
       });
     }
   };

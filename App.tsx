@@ -48,7 +48,49 @@ const App: React.FC = () => {
     setIsProfileDropdownOpen(false);
   };
 
-  // Improved fetchData with format mapping for backward compatibility
+  // --- Data Mapping Layer ---
+  
+  const mapInventoryFromDB = (data: any[]): Product[] => 
+    data.map(item => ({
+      id: item.id,
+      name: item.name,
+      sku: item.sku,
+      price: item.price,
+      cost: item.cost,
+      quantity: item.quantity,
+      image: item.image,
+      categories: item.categories || (item.category ? [item.category] : [])
+    }));
+
+  const mapSalesFromDB = (data: any[]): Sale[] =>
+    data.map(item => ({
+      id: item.id,
+      date: item.date,
+      customerName: item.customer_name || item.customerName,
+      totalAmount: item.total_amount || item.totalAmount,
+      items: item.items || []
+    }));
+
+  const mapCustomersFromDB = (data: any[]): Customer[] =>
+    data.map(item => ({
+      id: item.id,
+      name: item.name,
+      phone: item.phone,
+      email: item.email,
+      totalSpent: item.total_spent || item.totalSpent || 0
+    }));
+
+  const mapExpensesFromDB = (data: any[]): Expense[] =>
+    data.map(item => ({
+      id: item.id,
+      date: item.date,
+      description: item.description,
+      category: item.category,
+      amount: item.amount
+    }));
+
+  // --- Sync Logic ---
+
   const fetchData = useCallback(async (userId: string) => {
     if (userId.startsWith('demo-')) return;
 
@@ -61,17 +103,11 @@ const App: React.FC = () => {
         supabase.from('profiles').select('*').eq('id', userId).maybeSingle()
       ]);
 
-      // Map inventory to ensure 'categories' array exists even if DB uses old 'category' string
-      const mappedInventory: Product[] = (inv.data || []).map((item: any) => ({
-        ...item,
-        categories: item.categories || (item.category ? [item.category] : [])
-      }));
-
       setBusinessState({
-        inventory: mappedInventory,
-        sales: sales.data || [],
-        customers: cust.data || [],
-        expenses: exp.data || []
+        inventory: mapInventoryFromDB(inv.data || []),
+        sales: mapSalesFromDB(sales.data || []),
+        customers: mapCustomersFromDB(cust.data || []),
+        expenses: mapExpensesFromDB(exp.data || [])
       });
 
       if (prof.data) {
@@ -117,9 +153,7 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, [fetchData]);
 
-  // Enhanced handleUpdateState with better diffing and data mapping
   const handleUpdateState = async (newState: BusinessState) => {
-    // 1. Optimistic local update
     const prev = businessState;
     setBusinessState(newState);
 
@@ -138,9 +172,16 @@ const App: React.FC = () => {
         
         if (addedOrUpdated.length > 0) {
           const dbInventory = addedOrUpdated.map(i => ({
-            ...i,
-            user_id: userId,
-            category: i.categories[0] || '' 
+            id: i.id,
+            name: i.name,
+            sku: i.sku,
+            price: i.price,
+            cost: i.cost,
+            quantity: i.quantity,
+            image: i.image,
+            categories: i.categories,
+            category: i.categories[0] || '',
+            user_id: userId
           }));
           const { error } = await supabase.from('inventory').upsert(dbInventory);
           if (error) throw error;
@@ -152,11 +193,19 @@ const App: React.FC = () => {
         }
       }
 
-      // Sync Sales (Detecting Additions and Deletions)
+      // Sync Sales
       if (newState.sales !== prev.sales) {
         const added = newState.sales.filter(n => !prev.sales.find(o => o.id === n.id));
         if (added.length > 0) {
-          const { error } = await supabase.from('sales').insert(added.map(s => ({ ...s, user_id: userId })));
+          const dbSales = added.map(s => ({
+            id: s.id,
+            date: s.date,
+            customer_name: s.customerName,
+            total_amount: s.totalAmount,
+            items: s.items,
+            user_id: userId
+          }));
+          const { error } = await supabase.from('sales').insert(dbSales);
           if (error) throw error;
         }
 
@@ -173,7 +222,15 @@ const App: React.FC = () => {
           return !o || JSON.stringify(o) !== JSON.stringify(n);
         });
         if (addedOrUpdated.length > 0) {
-          const { error } = await supabase.from('customers').upsert(addedOrUpdated.map(c => ({ ...c, user_id: userId })));
+          const dbCustomers = addedOrUpdated.map(c => ({
+            id: c.id,
+            name: c.name,
+            phone: c.phone,
+            email: c.email,
+            total_spent: c.totalSpent,
+            user_id: userId
+          }));
+          const { error } = await supabase.from('customers').upsert(dbCustomers);
           if (error) throw error;
         }
         const removed = prev.customers.filter(o => !newState.customers.find(n => n.id === o.id));
@@ -189,7 +246,15 @@ const App: React.FC = () => {
           return !o || JSON.stringify(o) !== JSON.stringify(n);
         });
         if (addedOrUpdated.length > 0) {
-          const { error } = await supabase.from('expenses').upsert(addedOrUpdated.map(e => ({ ...e, user_id: userId })));
+          const dbExpenses = addedOrUpdated.map(e => ({
+            id: e.id,
+            date: e.date,
+            description: e.description,
+            category: e.category,
+            amount: e.amount,
+            user_id: userId
+          }));
+          const { error } = await supabase.from('expenses').upsert(dbExpenses);
           if (error) throw error;
         }
         const removed = prev.expenses.filter(o => !newState.expenses.find(n => n.id === o.id));
@@ -197,8 +262,11 @@ const App: React.FC = () => {
           await supabase.from('expenses').delete().eq('id', item.id).eq('user_id', userId);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Supabase sync error:", error);
+      alert(`Sync Failed: ${error.message || 'Check your internet connection.'}`);
+      // Revert local state to match DB
+      fetchData(user!.id);
     } finally {
       setIsSyncing(false);
     }
@@ -221,10 +289,26 @@ const App: React.FC = () => {
     }
 
     try {
-      const invWithUser = DEMO_DATA.inventory.map(i => ({ ...i, user_id: userId, category: i.categories[0] || '' }));
-      const salesWithUser = DEMO_DATA.sales.map(s => ({ ...s, user_id: userId }));
-      const custWithUser = DEMO_DATA.customers.map(c => ({ ...c, user_id: userId }));
-      const expWithUser = DEMO_DATA.expenses.map(e => ({ ...e, user_id: userId }));
+      const invWithUser = DEMO_DATA.inventory.map(i => ({ 
+        ...i, 
+        user_id: userId, 
+        category: i.categories[0] || '' 
+      }));
+      const salesWithUser = DEMO_DATA.sales.map(s => ({ 
+        ...s, 
+        user_id: userId, 
+        customer_name: s.customerName, 
+        total_amount: s.totalAmount 
+      }));
+      const custWithUser = DEMO_DATA.customers.map(c => ({ 
+        ...c, 
+        user_id: userId, 
+        total_spent: c.totalSpent 
+      }));
+      const expWithUser = DEMO_DATA.expenses.map(e => ({ 
+        ...e, 
+        user_id: userId 
+      }));
 
       await Promise.allSettled([
         supabase.from('inventory').upsert(invWithUser),
@@ -244,29 +328,24 @@ const App: React.FC = () => {
   const handleClearData = async () => {
     if (!user) return;
     
-    setIsSyncing(true);
-    setBusinessState({ 
-      inventory: [], 
-      sales: [], 
-      customers: [], 
-      expenses: [] 
-    });
-
     const userId = user.id;
-
-    try {
-      if (!userId.startsWith('demo-')) {
-        await Promise.allSettled([
-          supabase.from('sales').delete().eq('user_id', userId),
-          supabase.from('inventory').delete().eq('user_id', userId),
-          supabase.from('customers').delete().eq('user_id', userId),
-          supabase.from('expenses').delete().eq('user_id', userId)
-        ]);
+    if (window.confirm("Are you sure? This will delete all records from the database.")) {
+      setIsSyncing(true);
+      try {
+        if (!userId.startsWith('demo-')) {
+          await Promise.all([
+            supabase.from('sales').delete().eq('user_id', userId),
+            supabase.from('inventory').delete().eq('user_id', userId),
+            supabase.from('customers').delete().eq('user_id', userId),
+            supabase.from('expenses').delete().eq('user_id', userId)
+          ]);
+        }
+        setBusinessState({ inventory: [], sales: [], customers: [], expenses: [] });
+      } catch (err) {
+        console.error("Error clearing data:", err);
+      } finally {
+        setIsSyncing(false);
       }
-    } catch (err) {
-      console.error("Critical error during data clearing:", err);
-    } finally {
-      setIsSyncing(false);
     }
   };
 
