@@ -211,22 +211,34 @@ const App: React.FC = () => {
 
   const handleClearData = async () => {
     if (!user) return;
-    setIsSyncing(true);
-    const userId = user.id;
     
-    // Clear local state immediately for instant feedback
-    setBusinessState({ inventory: [], sales: [], customers: [], expenses: [] });
+    // Step 1: Immediate optimistic UI clear
+    setIsSyncing(true);
+    setBusinessState({ 
+      inventory: [], 
+      sales: [], 
+      customers: [], 
+      expenses: [] 
+    });
 
+    const userId = user.id;
+
+    // Step 2: Handle remote deletion if not a demo user
     try {
       if (!userId.startsWith('demo-')) {
-        // Sequential deletion to avoid foreign key constraints (Sales first as it links to Products)
-        await supabase.from('sales').delete().eq('user_id', userId);
-        await supabase.from('inventory').delete().eq('user_id', userId);
-        await supabase.from('customers').delete().eq('user_id', userId);
-        await supabase.from('expenses').delete().eq('user_id', userId);
+        console.log("Clearing remote data for user:", userId);
+        // We use allSettled to ensure we try to delete from every table even if one fails
+        await Promise.allSettled([
+          supabase.from('sales').delete().eq('user_id', userId),
+          supabase.from('inventory').delete().eq('user_id', userId),
+          supabase.from('customers').delete().eq('user_id', userId),
+          supabase.from('expenses').delete().eq('user_id', userId)
+        ]);
+      } else {
+        console.log("Cleared local demo data.");
       }
     } catch (err) {
-      console.error("Clear data failed on remote:", err);
+      console.error("Critical error during data clearing:", err);
     } finally {
       setIsSyncing(false);
     }
