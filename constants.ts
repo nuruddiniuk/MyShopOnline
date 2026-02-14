@@ -98,9 +98,9 @@ export const PRODUCT_CATEGORIES = [
 
 export const DEMO_DATA = {
   inventory: [
-    { id: '1', name: 'Fresh Milk 1L', sku: 'MLK-001', price: 80, cost: 65, quantity: 24, category: 'Grocery & Grains' },
-    { id: '2', name: 'Premium Tea 500g', sku: 'TEA-002', price: 450, cost: 380, quantity: 5, category: 'Tea Lovers' },
-    { id: '3', name: 'ACI Salt 1kg', sku: 'SLT-003', price: 40, cost: 32, quantity: 50, category: 'Grocery & Grains' },
+    { id: '1', name: 'Fresh Milk 1L', sku: 'MLK-001', price: 80, cost: 65, quantity: 24, categories: ['Grocery & Grains'] },
+    { id: '2', name: 'Premium Tea 500g', sku: 'TEA-002', price: 450, cost: 380, quantity: 5, categories: ['Tea Lovers', 'Others Product'] },
+    { id: '3', name: 'ACI Salt 1kg', sku: 'SLT-003', price: 40, cost: 32, quantity: 50, categories: ['Grocery & Grains'] },
   ],
   sales: [
     { id: 's1', date: '2023-10-01', customerName: 'Rahim Ali', items: [], totalAmount: 1200 },

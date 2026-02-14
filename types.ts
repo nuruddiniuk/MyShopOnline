@@ -15,7 +15,7 @@ export interface Product {
   price: number;
   cost: number;
   quantity: number;
-  category: string;
+  categories: string[]; // Updated from category: string
   image?: string;
 }
 

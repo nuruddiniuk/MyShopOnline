@@ -48,6 +48,7 @@ const App: React.FC = () => {
     setIsProfileDropdownOpen(false);
   };
 
+  // Improved fetchData with format mapping for backward compatibility
   const fetchData = useCallback(async (userId: string) => {
     if (userId.startsWith('demo-')) return;
 
@@ -60,8 +61,14 @@ const App: React.FC = () => {
         supabase.from('profiles').select('*').eq('id', userId).maybeSingle()
       ]);
 
+      // Map inventory to ensure 'categories' array exists even if DB uses old 'category' string
+      const mappedInventory: Product[] = (inv.data || []).map((item: any) => ({
+        ...item,
+        categories: item.categories || (item.category ? [item.category] : [])
+      }));
+
       setBusinessState({
-        inventory: inv.data || [],
+        inventory: mappedInventory,
         sales: sales.data || [],
         customers: cust.data || [],
         expenses: exp.data || []
@@ -73,11 +80,9 @@ const App: React.FC = () => {
           businessName: prof.data.business_name || prev.businessName || 'MyShop',
           profilePicture: prof.data.profile_picture || undefined
         } : null);
-      } else {
-        setUser(prev => prev ? { ...prev, businessName: prev.businessName === 'Loading...' ? 'MyShop' : prev.businessName } : null);
       }
     } catch (err) {
-      console.error("Error fetching data:", err);
+      console.error("Critical error fetching data:", err);
     }
   }, []);
 
@@ -112,63 +117,87 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, [fetchData]);
 
+  // Enhanced handleUpdateState with better diffing and data mapping
   const handleUpdateState = async (newState: BusinessState) => {
-    if (!user || user.id.startsWith('demo-')) {
-      setBusinessState(newState);
-      return;
-    }
-    
+    // 1. Optimistic local update
     const prev = businessState;
     setBusinessState(newState);
 
+    if (!user || user.id.startsWith('demo-')) return;
+    
+    setIsSyncing(true);
     try {
+      const userId = user.id;
+
+      // Sync Inventory
       if (newState.inventory !== prev.inventory) {
         const addedOrUpdated = newState.inventory.filter(n => {
           const o = prev.inventory.find(p => p.id === n.id);
           return !o || JSON.stringify(o) !== JSON.stringify(n);
         });
+        
         if (addedOrUpdated.length > 0) {
-          await supabase.from('inventory').upsert(addedOrUpdated.map(i => ({ ...i, user_id: user.id })));
+          // Map to database format: include both 'categories' array and 'category' fallback string
+          const dbInventory = addedOrUpdated.map(i => ({
+            ...i,
+            user_id: userId,
+            category: i.categories[0] || '' // Fallback for old schema
+          }));
+          const { error } = await supabase.from('inventory').upsert(dbInventory);
+          if (error) throw error;
         }
+
         const removed = prev.inventory.filter(o => !newState.inventory.find(n => n.id === o.id));
         for (const item of removed) {
-          await supabase.from('inventory').delete().eq('id', item.id).eq('user_id', user.id);
+          await supabase.from('inventory').delete().eq('id', item.id).eq('user_id', userId);
         }
       }
+
+      // Sync Sales (Appending only)
       if (newState.sales !== prev.sales) {
         const added = newState.sales.filter(n => !prev.sales.find(o => o.id === n.id));
         if (added.length > 0) {
-          await supabase.from('sales').insert(added.map(s => ({ ...s, user_id: user.id })));
+          const { error } = await supabase.from('sales').insert(added.map(s => ({ ...s, user_id: userId })));
+          if (error) throw error;
         }
       }
+
+      // Sync Customers
       if (newState.customers !== prev.customers) {
         const addedOrUpdated = newState.customers.filter(n => {
           const o = prev.customers.find(p => p.id === n.id);
           return !o || JSON.stringify(o) !== JSON.stringify(n);
         });
         if (addedOrUpdated.length > 0) {
-          await supabase.from('customers').upsert(addedOrUpdated.map(c => ({ ...c, user_id: user.id })));
+          const { error } = await supabase.from('customers').upsert(addedOrUpdated.map(c => ({ ...c, user_id: userId })));
+          if (error) throw error;
         }
         const removed = prev.customers.filter(o => !newState.customers.find(n => n.id === o.id));
         for (const item of removed) {
-          await supabase.from('customers').delete().eq('id', item.id).eq('user_id', user.id);
+          await supabase.from('customers').delete().eq('id', item.id).eq('user_id', userId);
         }
       }
+
+      // Sync Expenses
       if (newState.expenses !== prev.expenses) {
         const addedOrUpdated = newState.expenses.filter(n => {
           const o = prev.expenses.find(p => p.id === n.id);
           return !o || JSON.stringify(o) !== JSON.stringify(n);
         });
         if (addedOrUpdated.length > 0) {
-          await supabase.from('expenses').upsert(addedOrUpdated.map(e => ({ ...e, user_id: user.id })));
+          const { error } = await supabase.from('expenses').upsert(addedOrUpdated.map(e => ({ ...e, user_id: userId })));
+          if (error) throw error;
         }
         const removed = prev.expenses.filter(o => !newState.expenses.find(n => n.id === o.id));
         for (const item of removed) {
-          await supabase.from('expenses').delete().eq('id', item.id).eq('user_id', user.id);
+          await supabase.from('expenses').delete().eq('id', item.id).eq('user_id', userId);
         }
       }
     } catch (error) {
       console.error("Supabase sync error:", error);
+      // Optional: Rollback local state or show notification here
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -189,7 +218,7 @@ const App: React.FC = () => {
     }
 
     try {
-      const invWithUser = DEMO_DATA.inventory.map(i => ({ ...i, user_id: userId }));
+      const invWithUser = DEMO_DATA.inventory.map(i => ({ ...i, user_id: userId, category: i.categories[0] || '' }));
       const salesWithUser = DEMO_DATA.sales.map(s => ({ ...s, user_id: userId }));
       const custWithUser = DEMO_DATA.customers.map(c => ({ ...c, user_id: userId }));
       const expWithUser = DEMO_DATA.expenses.map(e => ({ ...e, user_id: userId }));
@@ -212,7 +241,6 @@ const App: React.FC = () => {
   const handleClearData = async () => {
     if (!user) return;
     
-    // Step 1: Immediate optimistic UI clear
     setIsSyncing(true);
     setBusinessState({ 
       inventory: [], 
@@ -223,19 +251,14 @@ const App: React.FC = () => {
 
     const userId = user.id;
 
-    // Step 2: Handle remote deletion if not a demo user
     try {
       if (!userId.startsWith('demo-')) {
-        console.log("Clearing remote data for user:", userId);
-        // We use allSettled to ensure we try to delete from every table even if one fails
         await Promise.allSettled([
           supabase.from('sales').delete().eq('user_id', userId),
           supabase.from('inventory').delete().eq('user_id', userId),
           supabase.from('customers').delete().eq('user_id', userId),
           supabase.from('expenses').delete().eq('user_id', userId)
         ]);
-      } else {
-        console.log("Cleared local demo data.");
       }
     } catch (err) {
       console.error("Critical error during data clearing:", err);
@@ -323,9 +346,15 @@ const App: React.FC = () => {
           </button>
           
           <div className="flex items-center gap-4 ml-auto">
+            {isSyncing && (
+              <div className="flex items-center gap-2 text-blue-600 animate-pulse text-xs font-bold mr-2">
+                <i className="fa-solid fa-cloud-arrow-up"></i>
+                <span className="hidden sm:inline">Syncing...</span>
+              </div>
+            )}
             <button 
               onClick={() => setLang(l => l === 'en' ? 'bn' : 'en')}
-              className="px-3 py-1 text-sm font-medium border rounded-full hover:bg-slate-50 transition-colors"
+              className="px-3 py-1 text-sm font-medium border rounded-full hover:bg-slate-100 transition-colors"
             >
               {t.language_toggle}
             </button>

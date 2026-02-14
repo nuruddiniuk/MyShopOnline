@@ -20,7 +20,7 @@ const Dashboard: React.FC<Props> = ({ state, lang, onNavigate }) => {
   const totalExpenses = state.expenses.reduce((acc, curr) => acc + curr.amount, 0);
   const inventoryCount = state.inventory.reduce((acc, curr) => acc + curr.quantity, 0);
   const customerCount = state.customers.length;
-  // Fix: Updated to use flatMap to correctly count unique categories across multiple items
+  // Updated to use flatMap for multiple categories
   const categoryCount = new Set(state.inventory.flatMap(i => i.categories).filter(Boolean)).size;
 
   const kpis = [
@@ -171,7 +171,6 @@ const Dashboard: React.FC<Props> = ({ state, lang, onNavigate }) => {
                     </div>
                     <div>
                       <p className="font-bold text-slate-800 text-sm truncate max-w-[120px]">{item.name}</p>
-                      {/* Fix: join multiple categories for display */}
                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{item.categories.join(', ')}</p>
                     </div>
                   </div>

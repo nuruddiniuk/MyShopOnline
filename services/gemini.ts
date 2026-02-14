@@ -14,6 +14,7 @@ export const getAIResponse = async (prompt: string, state: BusinessState) => {
     Total Sales Revenue: ${state.sales.reduce((acc, curr) => acc + curr.totalAmount, 0)}
     Total Expenses: ${state.expenses.reduce((acc, curr) => acc + curr.amount, 0)}
     Low Stock Items (Qty < 10): ${state.inventory.filter(i => i.quantity < 10).map(i => i.name).join(', ')}
+    Categories Represented: ${Array.from(new Set(state.inventory.flatMap(i => i.categories))).join(', ')}
     
     Instructions:
     Answer questions based on this data. Be helpful, concise, and professional. 
