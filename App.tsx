@@ -180,7 +180,7 @@ const App: React.FC = () => {
             quantity: i.quantity,
             image: i.image,
             categories: i.categories,
-            category: i.categories[0] || '', // Support for legacy single-string category column
+            category: i.categories[0] || '', 
             user_id: userId
           }));
           const { error } = await supabase.from('inventory').upsert(dbInventory);
@@ -264,8 +264,7 @@ const App: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Supabase sync error:", error);
-      alert(`Sync Failed: ${error.message || 'Check your internet connection.'}`);
-      // Revert local state to match DB
+      alert(`Sync Failed: ${error.message || 'Please check your connection.'}`);
       fetchData(user!.id);
     } finally {
       setIsSyncing(false);

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { BusinessState, Language, Product } from '../types';
 import { TRANSLATIONS, PRODUCT_CATEGORIES } from '../constants';
@@ -66,7 +67,11 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
     setIsModalOpen(true);
   };
 
-  const openEditModal = (product: Product) => {
+  const openEditModal = (product: Product, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setEditingProduct(product);
     setFormData({
       name: product.name || '',
@@ -269,7 +274,7 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
-                        <button type="button" onClick={() => openEditModal(item)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors">
+                        <button type="button" onClick={(e) => openEditModal(item, e)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors">
                           <i className="fa-solid fa-pen-to-square"></i>
                         </button>
                         <button type="button" onClick={(e) => handleDelete(e, item.id)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
