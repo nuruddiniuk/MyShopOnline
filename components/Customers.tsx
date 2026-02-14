@@ -41,7 +41,6 @@ const Customers: React.FC<Props> = ({ state, setState, lang }) => {
     if (!formData.name || !formData.phone) return;
 
     if (editingCustomer) {
-      // Update existing customer
       const updatedCustomers = state.customers.map(c => 
         c.id === editingCustomer.id 
           ? { ...c, name: formData.name, phone: formData.phone, email: formData.email }
@@ -52,7 +51,6 @@ const Customers: React.FC<Props> = ({ state, setState, lang }) => {
         customers: updatedCustomers
       });
     } else {
-      // Add new customer
       const newCustomer: Customer = {
         id: 'cust-' + Date.now(),
         name: formData.name,
@@ -71,7 +69,9 @@ const Customers: React.FC<Props> = ({ state, setState, lang }) => {
     setEditingCustomer(null);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (window.confirm('Are you sure you want to remove this customer? This action cannot be undone.')) {
       setState({
         ...state,
@@ -88,6 +88,7 @@ const Customers: React.FC<Props> = ({ state, setState, lang }) => {
           <p className="text-sm text-slate-500">{state.customers.length} registered customers</p>
         </div>
         <button 
+          type="button"
           onClick={openAddModal}
           className="flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
         >
@@ -108,6 +109,7 @@ const Customers: React.FC<Props> = ({ state, setState, lang }) => {
                   <h3 className="font-bold text-slate-800 truncate pr-12" title={c.name}>{c.name}</h3>
                   <div className="absolute top-4 right-4 flex gap-1">
                     <button 
+                      type="button"
                       onClick={() => openEditModal(c)}
                       className="text-slate-400 hover:text-blue-600 transition-colors p-2"
                       title="Edit Customer"
@@ -115,7 +117,8 @@ const Customers: React.FC<Props> = ({ state, setState, lang }) => {
                       <i className="fa-solid fa-pen-to-square text-xs"></i>
                     </button>
                     <button 
-                      onClick={() => handleDelete(c.id)}
+                      type="button"
+                      onClick={(e) => handleDelete(e, c.id)}
                       className="text-slate-400 hover:text-rose-500 transition-colors p-2"
                       title="Delete Customer"
                     >
@@ -151,7 +154,6 @@ const Customers: React.FC<Props> = ({ state, setState, lang }) => {
         )}
       </div>
 
-      {/* Add/Edit Customer Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}></div>
@@ -160,7 +162,7 @@ const Customers: React.FC<Props> = ({ state, setState, lang }) => {
               <h3 className="text-2xl font-bold text-slate-800">
                 {editingCustomer ? 'Edit Customer' : t.add_customer}
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-2">
+              <button type="button" onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-2">
                 <i className="fa-solid fa-xmark text-xl"></i>
               </button>
             </div>

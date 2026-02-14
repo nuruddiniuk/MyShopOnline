@@ -58,7 +58,6 @@ const Expenses: React.FC<Props> = ({ state, setState, lang }) => {
     if (!formData.description || !formData.amount) return;
 
     if (editingExpense) {
-      // Update existing expense
       const updatedExpenses = state.expenses.map(exp => 
         exp.id === editingExpense.id 
           ? { ...exp, description: formData.description, category: formData.category, amount: Number(formData.amount), date: formData.date }
@@ -69,7 +68,6 @@ const Expenses: React.FC<Props> = ({ state, setState, lang }) => {
         expenses: updatedExpenses
       });
     } else {
-      // Add new expense
       const newExpense: Expense = {
         id: 'exp-' + Date.now(),
         description: formData.description,
@@ -93,11 +91,14 @@ const Expenses: React.FC<Props> = ({ state, setState, lang }) => {
     });
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (window.confirm('Are you sure you want to delete this expense record?')) {
+      const updatedExpenses = state.expenses.filter(item => item.id !== id);
       setState({
         ...state,
-        expenses: state.expenses.filter(e => e.id !== id)
+        expenses: updatedExpenses
       });
     }
   };
@@ -110,6 +111,7 @@ const Expenses: React.FC<Props> = ({ state, setState, lang }) => {
           <p className="text-sm text-slate-500">Track your business overheads and spending</p>
         </div>
         <button 
+          type="button"
           onClick={openAddModal}
           className="flex items-center justify-center gap-2 bg-rose-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-rose-700 transition-all shadow-lg shadow-rose-200"
         >
@@ -145,6 +147,7 @@ const Expenses: React.FC<Props> = ({ state, setState, lang }) => {
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <button 
+                          type="button"
                           onClick={() => openEditModal(exp)}
                           className="p-2 text-slate-400 hover:text-blue-600 transition-colors"
                           title="Edit record"
@@ -152,7 +155,8 @@ const Expenses: React.FC<Props> = ({ state, setState, lang }) => {
                           <i className="fa-solid fa-pen-to-square text-sm"></i>
                         </button>
                         <button 
-                          onClick={() => handleDelete(exp.id)}
+                          type="button"
+                          onClick={(e) => handleDelete(e, exp.id)}
                           className="p-2 text-slate-400 hover:text-rose-600 transition-colors"
                           title="Delete record"
                         >
@@ -177,16 +181,15 @@ const Expenses: React.FC<Props> = ({ state, setState, lang }) => {
         </div>
       </div>
 
-      {/* Add/Edit Expense Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}></div>
-          <div className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 animate-in zoom-in-95 duration-200">
+          <div className="relative bg-white w-full max-md rounded-3xl shadow-2xl p-8 animate-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center mb-8">
               <h3 className="text-2xl font-bold text-slate-800">
                 {editingExpense ? 'Update Expense' : t.add_expense}
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-2">
+              <button type="button" onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-2">
                 <i className="fa-solid fa-xmark text-xl"></i>
               </button>
             </div>

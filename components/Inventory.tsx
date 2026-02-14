@@ -97,11 +97,12 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
   };
 
   const handleDelete = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
     e.stopPropagation();
     if (window.confirm('Are you sure you want to delete this product?')) {
       setState({
         ...state,
-        inventory: state.inventory.filter(p => p.id !== id)
+        inventory: state.inventory.filter(item => item.id !== id)
       });
     }
   };
