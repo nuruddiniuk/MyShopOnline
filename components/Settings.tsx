@@ -16,6 +16,7 @@ const Settings: React.FC<Props> = ({ user, onUpdateUser, onLoadDemo, onClearData
   const t = TRANSLATIONS[lang];
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(user.businessName);
+  const [showStatus, setShowStatus] = useState<'cleared' | 'loaded' | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleProfileUpdate = (e: React.FormEvent) => {
@@ -85,6 +86,20 @@ const Settings: React.FC<Props> = ({ user, onUpdateUser, onLoadDemo, onClearData
       ...user,
       profilePicture: undefined
     });
+  };
+
+  const handleClear = () => {
+    if (window.confirm("Are you sure you want to clear all business data? This action cannot be undone.")) {
+      onClearData();
+      setShowStatus('cleared');
+      setTimeout(() => setShowStatus(null), 3000);
+    }
+  };
+
+  const handleLoad = () => {
+    onLoadDemo();
+    setShowStatus('loaded');
+    setTimeout(() => setShowStatus(null), 3000);
   };
 
   return (
@@ -209,17 +224,24 @@ const Settings: React.FC<Props> = ({ user, onUpdateUser, onLoadDemo, onClearData
             <h3 className="text-lg font-bold text-slate-800">{t.demo_data}</h3>
             <p className="text-sm text-slate-500 mt-1">Populate or clear your local database for testing</p>
           </div>
-          {isSyncing && (
-            <div className="flex items-center gap-2 text-blue-600 text-sm font-bold animate-pulse">
-              <i className="fa-solid fa-circle-notch animate-spin"></i>
-              <span>Syncing...</span>
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            {showStatus && (
+              <span className={`text-xs font-bold uppercase animate-in fade-in slide-in-from-right-2 ${showStatus === 'cleared' ? 'text-rose-500' : 'text-emerald-500'}`}>
+                {showStatus === 'cleared' ? 'Data Cleared!' : 'Demo Loaded!'}
+              </span>
+            )}
+            {isSyncing && (
+              <div className="flex items-center gap-2 text-blue-600 text-sm font-bold animate-pulse">
+                <i className="fa-solid fa-circle-notch animate-spin"></i>
+                <span>Syncing...</span>
+              </div>
+            )}
+          </div>
         </div>
         <div className="p-6 flex flex-col sm:flex-row gap-4">
           <button 
             disabled={isSyncing}
-            onClick={onLoadDemo}
+            onClick={handleLoad}
             className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <i className="fa-solid fa-database"></i>
@@ -227,11 +249,7 @@ const Settings: React.FC<Props> = ({ user, onUpdateUser, onLoadDemo, onClearData
           </button>
           <button 
             disabled={isSyncing}
-            onClick={() => {
-              if (window.confirm("Are you sure you want to clear all business data? This action cannot be undone.")) {
-                onClearData();
-              }
-            }}
+            onClick={handleClear}
             className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border-2 border-rose-100 text-rose-600 rounded-xl font-bold hover:bg-rose-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <i className="fa-solid fa-trash-can"></i>

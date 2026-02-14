@@ -219,12 +219,11 @@ const App: React.FC = () => {
 
     try {
       if (!userId.startsWith('demo-')) {
-        await Promise.allSettled([
-          supabase.from('inventory').delete().eq('user_id', userId),
-          supabase.from('sales').delete().eq('user_id', userId),
-          supabase.from('customers').delete().eq('user_id', userId),
-          supabase.from('expenses').delete().eq('user_id', userId)
-        ]);
+        // Sequential deletion to avoid foreign key constraints (Sales first as it links to Products)
+        await supabase.from('sales').delete().eq('user_id', userId);
+        await supabase.from('inventory').delete().eq('user_id', userId);
+        await supabase.from('customers').delete().eq('user_id', userId);
+        await supabase.from('expenses').delete().eq('user_id', userId);
       }
     } catch (err) {
       console.error("Clear data failed on remote:", err);
