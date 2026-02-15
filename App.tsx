@@ -16,9 +16,7 @@ import Auth from './components/Auth';
 import AIAssistant from './components/AIAssistant';
 import { supabase } from './services/supabase';
 
-// Fixed the App component by completing the truncated logic and adding return statement with export
 const App: React.FC = () => {
-  // Global State
   const [user, setUser] = useState<User | null>(null);
   const [lang, setLang] = useState<Language>('en');
   const [currentPage, setCurrentPage] = useState<string>('dashboard');
@@ -28,7 +26,6 @@ const App: React.FC = () => {
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Business State
   const [businessState, setBusinessState] = useState<BusinessState>({
     inventory: [],
     sales: [],
@@ -49,8 +46,6 @@ const App: React.FC = () => {
     setIsProfileDropdownOpen(false);
   };
 
-  // --- Data Mapping Layer ---
-  
   const mapInventoryFromDB = (data: any[]): Product[] => 
     data.map(item => ({
       id: item.id,
@@ -90,11 +85,8 @@ const App: React.FC = () => {
       amount: item.amount
     }));
 
-  // --- Sync Logic ---
-
   const fetchData = useCallback(async (userId: string) => {
     if (userId.startsWith('demo-')) return;
-
     try {
       const [inv, sales, cust, exp, prof] = await Promise.all([
         supabase.from('inventory').select('*').eq('user_id', userId),
@@ -126,11 +118,7 @@ const App: React.FC = () => {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email!,
-          businessName: 'MyShop'
-        });
+        setUser({ id: session.user.id, email: session.user.email!, businessName: 'MyShop' });
         fetchData(session.user.id);
       }
       setIsInitializing(false);
@@ -150,7 +138,6 @@ const App: React.FC = () => {
         setBusinessState({ inventory: [], sales: [], customers: [], expenses: [] });
       }
     });
-
     return () => subscription.unsubscribe();
   }, [fetchData]);
 
@@ -170,58 +157,24 @@ const App: React.FC = () => {
           const o = prev.inventory.find(p => p.id === n.id);
           return !o || JSON.stringify(o) !== JSON.stringify(n);
         });
-        
         if (addedOrUpdated.length > 0) {
-          const dbInventory = addedOrUpdated.map(i => ({
-            id: i.id,
-            name: i.name,
-            sku: i.sku,
-            price: i.price,
-            cost: i.cost,
-            quantity: i.quantity,
-            image: i.image,
-            categories: i.categories,
-            category: i.categories[0] || '', 
-            user_id: userId
-          }));
-          const { error } = await supabase.from('inventory').upsert(dbInventory);
-          if (error) throw error;
+          await supabase.from('inventory').upsert(addedOrUpdated.map(i => ({ ...i, user_id: userId, category: i.categories[0] || '' })));
         }
-
-        const removedIds = prev.inventory
-          .filter(o => !newState.inventory.find(n => n.id === o.id))
-          .map(item => item.id);
-          
-        if (removedIds.length > 0) {
-          const { error } = await supabase.from('inventory').delete().in('id', removedIds).eq('user_id', userId);
-          if (error) throw error;
-        }
+        const removedIds = prev.inventory.filter(o => !newState.inventory.find(n => n.id === o.id)).map(i => i.id);
+        if (removedIds.length > 0) await supabase.from('inventory').delete().in('id', removedIds).eq('user_id', userId);
       }
 
       // Sync Sales
       if (newState.sales !== prev.sales) {
         const added = newState.sales.filter(n => !prev.sales.find(o => o.id === n.id));
         if (added.length > 0) {
-          const dbSales = added.map(s => ({
-            id: s.id,
-            date: s.date,
-            customer_name: s.customerName,
-            total_amount: s.totalAmount,
-            items: s.items,
-            user_id: userId
-          }));
-          const { error } = await supabase.from('sales').insert(dbSales);
-          if (error) throw error;
+          await supabase.from('sales').insert(added.map(s => ({ 
+            id: s.id, date: s.date, customer_name: s.customerName, 
+            total_amount: s.totalAmount, items: s.items, user_id: userId 
+          })));
         }
-
-        const removedIds = prev.sales
-          .filter(o => !newState.sales.find(n => n.id === o.id))
-          .map(s => s.id);
-          
-        if (removedIds.length > 0) {
-          const { error } = await supabase.from('sales').delete().in('id', removedIds).eq('user_id', userId);
-          if (error) throw error;
-        }
+        const removedIds = prev.sales.filter(o => !newState.sales.find(n => n.id === o.id)).map(s => s.id);
+        if (removedIds.length > 0) await supabase.from('sales').delete().in('id', removedIds).eq('user_id', userId);
       }
 
       // Sync Customers
@@ -231,26 +184,10 @@ const App: React.FC = () => {
           return !o || JSON.stringify(o) !== JSON.stringify(n);
         });
         if (addedOrUpdated.length > 0) {
-          const dbCustomers = addedOrUpdated.map(c => ({
-            id: c.id,
-            name: c.name,
-            phone: c.phone,
-            email: c.email,
-            total_spent: c.totalSpent,
-            user_id: userId
-          }));
-          const { error } = await supabase.from('customers').upsert(dbCustomers);
-          if (error) throw error;
+          await supabase.from('customers').upsert(addedOrUpdated.map(c => ({ ...c, user_id: userId, total_spent: c.totalSpent })));
         }
-        
-        const removedIds = prev.customers
-          .filter(o => !newState.customers.find(n => n.id === o.id))
-          .map(c => c.id);
-          
-        if (removedIds.length > 0) {
-          const { error } = await supabase.from('customers').delete().in('id', removedIds).eq('user_id', userId);
-          if (error) throw error;
-        }
+        const removedIds = prev.customers.filter(o => !newState.customers.find(n => n.id === o.id)).map(c => c.id);
+        if (removedIds.length > 0) await supabase.from('customers').delete().in('id', removedIds).eq('user_id', userId);
       }
 
       // Sync Expenses
@@ -260,26 +197,10 @@ const App: React.FC = () => {
           return !o || JSON.stringify(o) !== JSON.stringify(n);
         });
         if (addedOrUpdated.length > 0) {
-          const dbExpenses = addedOrUpdated.map(e => ({
-            id: e.id,
-            date: e.date,
-            description: e.description,
-            category: e.category,
-            amount: e.amount,
-            user_id: userId
-          }));
-          const { error } = await supabase.from('expenses').upsert(dbExpenses);
-          if (error) throw error;
+          await supabase.from('expenses').upsert(addedOrUpdated.map(e => ({ ...e, user_id: userId })));
         }
-
-        const removedIds = prev.expenses
-          .filter(o => !newState.expenses.find(n => n.id === o.id))
-          .map(e => e.id);
-          
-        if (removedIds.length > 0) {
-          const { error } = await supabase.from('expenses').delete().in('id', removedIds).eq('user_id', userId);
-          if (error) throw error;
-        }
+        const removedIds = prev.expenses.filter(o => !newState.expenses.find(n => n.id === o.id)).map(e => e.id);
+        if (removedIds.length > 0) await supabase.from('expenses').delete().in('id', removedIds).eq('user_id', userId);
       }
     } catch (err) {
       console.error("Sync error:", err);
@@ -289,13 +210,9 @@ const App: React.FC = () => {
   };
 
   const handleClearData = () => {
-    if (window.confirm(lang === 'bn' ? 'সব ডেটা মুছে ফেলার ব্যাপারে আপনি কি নিশ্চিত?' : 'Are you sure you want to clear all your data? This cannot be undone.')) {
-      handleUpdateState({
-        inventory: [],
-        sales: [],
-        customers: [],
-        expenses: []
-      });
+    const msg = lang === 'bn' ? 'সব ডেটা মুছে ফেলার ব্যাপারে আপনি কি নিশ্চিত? এটি আর ফিরিয়ে আনা যাবে না।' : 'Are you sure you want to clear ALL data? This cannot be undone.';
+    if (window.confirm(msg)) {
+      handleUpdateState({ inventory: [], sales: [], customers: [], expenses: [] });
     }
   };
 
@@ -306,11 +223,7 @@ const App: React.FC = () => {
   const handleUpdateUser = async (updatedUser: User) => {
     setUser(updatedUser);
     if (user && !user.id.startsWith('demo-')) {
-      await supabase.from('profiles').upsert({
-        id: user.id,
-        business_name: updatedUser.businessName,
-        profile_picture: updatedUser.profilePicture
-      });
+      await supabase.from('profiles').upsert({ id: user.id, business_name: updatedUser.businessName, profile_picture: updatedUser.profilePicture });
     }
   };
 
@@ -325,93 +238,33 @@ const App: React.FC = () => {
     );
   }
 
-  if (!user) {
-    return (
-      <Auth 
-        onLogin={setUser} 
-        lang={lang} 
-        toggleLanguage={() => setLang(prev => prev === 'en' ? 'bn' : 'en')} 
-      />
-    );
-  }
+  if (!user) return <Auth onLogin={setUser} lang={lang} toggleLanguage={() => setLang(prev => prev === 'en' ? 'bn' : 'en')} />;
 
   const renderPage = () => {
     switch (currentPage) {
-      case 'dashboard':
-        return <Dashboard state={businessState} lang={lang} onNavigate={handleNavigate} />;
-      case 'inventory':
-        return (
-          <Inventory 
-            state={businessState} 
-            setState={handleUpdateState} 
-            lang={lang} 
-            initialParams={navParams} 
-            clearParams={() => setNavParams(null)} 
-          />
-        );
-      case 'sales':
-        return <Sales state={businessState} setState={handleUpdateState} lang={lang} />;
-      case 'customers':
-        return <Customers state={businessState} setState={handleUpdateState} lang={lang} />;
-      case 'expenses':
-        return <Expenses state={businessState} setState={handleUpdateState} lang={lang} />;
-      case 'reports':
-        return <Reports state={businessState} lang={lang} />;
-      case 'settings':
-        return (
-          <Settings 
-            user={user} 
-            onUpdateUser={handleUpdateUser} 
-            onLoadDemo={handleLoadDemo} 
-            onClearData={handleClearData} 
-            lang={lang}
-            isSyncing={isSyncing}
-          />
-        );
-      default:
-        return <Dashboard state={businessState} lang={lang} onNavigate={handleNavigate} />;
+      case 'dashboard': return <Dashboard state={businessState} lang={lang} onNavigate={handleNavigate} />;
+      case 'inventory': return <Inventory state={businessState} setState={handleUpdateState} lang={lang} initialParams={navParams} clearParams={() => setNavParams(null)} />;
+      case 'sales': return <Sales state={businessState} setState={handleUpdateState} lang={lang} />;
+      case 'customers': return <Customers state={businessState} setState={handleUpdateState} lang={lang} />;
+      case 'expenses': return <Expenses state={businessState} setState={handleUpdateState} lang={lang} />;
+      case 'reports': return <Reports state={businessState} lang={lang} />;
+      case 'settings': return <Settings user={user} onUpdateUser={handleUpdateUser} onLoadDemo={handleLoadDemo} onClearData={handleClearData} lang={lang} isSyncing={isSyncing} />;
+      default: return <Dashboard state={businessState} lang={lang} onNavigate={handleNavigate} />;
     }
   };
 
   return (
     <div className="min-h-screen bg-slate-50 flex font-['Inter',_sans-serif]">
-      <Sidebar 
-        isOpen={isSidebarOpen} 
-        setIsOpen={setIsSidebarOpen}
-        currentPage={currentPage} 
-        setCurrentPage={setCurrentPage} 
-        onLogout={handleLogout} 
-        lang={lang} 
-      />
-
+      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} currentPage={currentPage} setCurrentPage={setCurrentPage} onLogout={handleLogout} lang={lang} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 shrink-0">
-          <button 
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg"
-          >
-            <i className="fa-solid fa-bars text-xl"></i>
-          </button>
-
+          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg"><i className="fa-solid fa-bars text-xl"></i></button>
           <div className="flex items-center gap-4 ml-auto">
-            <button 
-              onClick={() => setLang(prev => prev === 'en' ? 'bn' : 'en')}
-              className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
-            >
-              {TRANSLATIONS[lang].language_toggle}
-            </button>
-
+            <button onClick={() => setLang(prev => prev === 'en' ? 'bn' : 'en')} className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors">{TRANSLATIONS[lang].language_toggle}</button>
             <div className="relative">
-              <button 
-                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                className="flex items-center gap-3 p-1 hover:bg-slate-50 rounded-xl transition-colors"
-              >
+              <button onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} className="flex items-center gap-3 p-1 hover:bg-slate-50 rounded-xl transition-colors">
                 <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold overflow-hidden border border-blue-200">
-                  {user.profilePicture ? (
-                    <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
-                  ) : (
-                    <span>{user.businessName.charAt(0)}</span>
-                  )}
+                  {user.profilePicture ? <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" /> : <span>{user.businessName.charAt(0)}</span>}
                 </div>
                 <div className="hidden sm:block text-left">
                   <p className="text-xs font-bold text-slate-900 leading-tight">{user.businessName}</p>
@@ -419,38 +272,21 @@ const App: React.FC = () => {
                 </div>
                 <i className={`fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform ${isProfileDropdownOpen ? 'rotate-180' : ''}`}></i>
               </button>
-
               {isProfileDropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsProfileDropdownOpen(false)}></div>
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-100 origin-top-right">
-                    <button 
-                      onClick={() => handleNavigate('settings')}
-                      className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                    >
-                      <i className="fa-solid fa-user-gear w-4"></i>
-                      Settings
-                    </button>
+                    <button onClick={() => handleNavigate('settings')} className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"><i className="fa-solid fa-user-gear w-4"></i>Settings</button>
                     <div className="h-px bg-slate-100 my-1"></div>
-                    <button 
-                      onClick={handleLogout}
-                      className="w-full px-4 py-2 text-left text-sm text-rose-600 hover:bg-rose-50 flex items-center gap-2"
-                    >
-                      <i className="fa-solid fa-right-from-bracket w-4"></i>
-                      Logout
-                    </button>
+                    <button onClick={handleLogout} className="w-full px-4 py-2 text-left text-sm text-rose-600 hover:bg-rose-50 flex items-center gap-2"><i className="fa-solid fa-right-from-bracket w-4"></i>Logout</button>
                   </div>
                 </>
               )}
             </div>
           </div>
         </header>
-
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
-          {renderPage()}
-        </main>
+        <main className="flex-1 overflow-y-auto p-4 md:p-8">{renderPage()}</main>
       </div>
-
       <AIAssistant state={businessState} lang={lang} />
     </div>
   );
