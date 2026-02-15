@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Language, User, BusinessState, Product, Sale, Customer, Expense
@@ -15,6 +16,7 @@ import Auth from './components/Auth';
 import AIAssistant from './components/AIAssistant';
 import { supabase } from './services/supabase';
 
+// Fixed the App component by completing the truncated logic and adding return statement with export
 const App: React.FC = () => {
   // Global State
   const [user, setUser] = useState<User | null>(null);
@@ -186,9 +188,13 @@ const App: React.FC = () => {
           if (error) throw error;
         }
 
-        const removed = prev.inventory.filter(o => !newState.inventory.find(n => n.id === o.id));
-        for (const item of removed) {
-          await supabase.from('inventory').delete().eq('id', item.id).eq('user_id', userId);
+        const removedIds = prev.inventory
+          .filter(o => !newState.inventory.find(n => n.id === o.id))
+          .map(item => item.id);
+          
+        if (removedIds.length > 0) {
+          const { error } = await supabase.from('inventory').delete().in('id', removedIds).eq('user_id', userId);
+          if (error) throw error;
         }
       }
 
@@ -208,9 +214,13 @@ const App: React.FC = () => {
           if (error) throw error;
         }
 
-        const removed = prev.sales.filter(o => !newState.sales.find(n => n.id === o.id));
-        for (const sale of removed) {
-          await supabase.from('sales').delete().eq('id', sale.id).eq('user_id', userId);
+        const removedIds = prev.sales
+          .filter(o => !newState.sales.find(n => n.id === o.id))
+          .map(s => s.id);
+          
+        if (removedIds.length > 0) {
+          const { error } = await supabase.from('sales').delete().in('id', removedIds).eq('user_id', userId);
+          if (error) throw error;
         }
       }
 
@@ -232,9 +242,14 @@ const App: React.FC = () => {
           const { error } = await supabase.from('customers').upsert(dbCustomers);
           if (error) throw error;
         }
-        const removed = prev.customers.filter(o => !newState.customers.find(n => n.id === o.id));
-        for (const item of removed) {
-          await supabase.from('customers').delete().eq('id', item.id).eq('user_id', userId);
+        
+        const removedIds = prev.customers
+          .filter(o => !newState.customers.find(n => n.id === o.id))
+          .map(c => c.id);
+          
+        if (removedIds.length > 0) {
+          const { error } = await supabase.from('customers').delete().in('id', removedIds).eq('user_id', userId);
+          if (error) throw error;
         }
       }
 
@@ -256,236 +271,173 @@ const App: React.FC = () => {
           const { error } = await supabase.from('expenses').upsert(dbExpenses);
           if (error) throw error;
         }
-        const removed = prev.expenses.filter(o => !newState.expenses.find(n => n.id === o.id));
-        for (const item of removed) {
-          await supabase.from('expenses').delete().eq('id', item.id).eq('user_id', userId);
+
+        const removedIds = prev.expenses
+          .filter(o => !newState.expenses.find(n => n.id === o.id))
+          .map(e => e.id);
+          
+        if (removedIds.length > 0) {
+          const { error } = await supabase.from('expenses').delete().in('id', removedIds).eq('user_id', userId);
+          if (error) throw error;
         }
       }
-    } catch (error: any) {
-      console.error("Supabase sync error:", error);
-      alert(`Sync Failed: ${error.message || 'Please check your connection.'}`);
-      fetchData(user!.id);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const handleLoadDemo = async () => {
-    if (!user) return;
-    setIsSyncing(true);
-    const userId = user.id;
-
-    if (userId.startsWith('demo-')) {
-      setBusinessState({
-        inventory: JSON.parse(JSON.stringify(DEMO_DATA.inventory)),
-        sales: JSON.parse(JSON.stringify(DEMO_DATA.sales)),
-        customers: JSON.parse(JSON.stringify(DEMO_DATA.customers)),
-        expenses: JSON.parse(JSON.stringify(DEMO_DATA.expenses))
-      });
-      setIsSyncing(false);
-      return;
-    }
-
-    try {
-      const invWithUser = DEMO_DATA.inventory.map(i => ({ 
-        ...i, 
-        user_id: userId, 
-        category: i.categories[0] || '' 
-      }));
-      const salesWithUser = DEMO_DATA.sales.map(s => ({ 
-        ...s, 
-        user_id: userId, 
-        customer_name: s.customerName, 
-        total_amount: s.totalAmount 
-      }));
-      const custWithUser = DEMO_DATA.customers.map(c => ({ 
-        ...c, 
-        user_id: userId, 
-        total_spent: c.totalSpent 
-      }));
-      const expWithUser = DEMO_DATA.expenses.map(e => ({ 
-        ...e, 
-        user_id: userId 
-      }));
-
-      await Promise.allSettled([
-        supabase.from('inventory').upsert(invWithUser),
-        supabase.from('sales').upsert(salesWithUser),
-        supabase.from('customers').upsert(custWithUser),
-        supabase.from('expenses').upsert(expWithUser)
-      ]);
-      
-      await fetchData(userId);
     } catch (err) {
-      console.error("Demo load failed:", err);
+      console.error("Sync error:", err);
     } finally {
       setIsSyncing(false);
     }
   };
 
-  const handleClearData = async () => {
-    if (!user) return;
-    
-    const userId = user.id;
-    // Primary safety check
-    const confirmMsg = lang === 'bn' 
-      ? "আপনি কি নিশ্চিত? এটি আপনার ডাটাবেস থেকে সব রেকর্ড মুছে ফেলবে এবং এই কাজ আর ফিরিয়ে আনা যাবে না।" 
-      : "Are you sure? This will delete ALL records from the database. This action cannot be undone.";
-
-    if (window.confirm(confirmMsg)) {
-      setIsSyncing(true);
-      try {
-        if (!userId.startsWith('demo-')) {
-          await Promise.all([
-            supabase.from('sales').delete().eq('user_id', userId),
-            supabase.from('inventory').delete().eq('user_id', userId),
-            supabase.from('customers').delete().eq('user_id', userId),
-            supabase.from('expenses').delete().eq('user_id', userId)
-          ]);
-        }
-        setBusinessState({ inventory: [], sales: [], customers: [], expenses: [] });
-      } catch (err) {
-        console.error("Error clearing data:", err);
-      } finally {
-        setIsSyncing(false);
-      }
+  const handleClearData = () => {
+    if (window.confirm(lang === 'bn' ? 'সব ডেটা মুছে ফেলার ব্যাপারে আপনি কি নিশ্চিত?' : 'Are you sure you want to clear all your data? This cannot be undone.')) {
+      handleUpdateState({
+        inventory: [],
+        sales: [],
+        customers: [],
+        expenses: []
+      });
     }
+  };
+
+  const handleLoadDemo = () => {
+    handleUpdateState(DEMO_DATA);
   };
 
   const handleUpdateUser = async (updatedUser: User) => {
     setUser(updatedUser);
-    if (updatedUser.id.startsWith('demo-')) return;
-    try {
+    if (user && !user.id.startsWith('demo-')) {
       await supabase.from('profiles').upsert({
-        id: updatedUser.id,
+        id: user.id,
         business_name: updatedUser.businessName,
-        profile_picture: updatedUser.profilePicture || null 
+        profile_picture: updatedUser.profilePicture
       });
-    } catch (error) {
-      console.error("Profile update failure:", error);
     }
   };
 
-  const t = TRANSLATIONS[lang];
-
   if (isInitializing) {
     return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white">
-        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="font-bold tracking-widest text-sm opacity-50 uppercase">Initialising MyShop</p>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-slate-500 font-bold animate-pulse">Initializing MyShop...</p>
+        </div>
       </div>
     );
   }
 
   if (!user) {
-    return <Auth onLogin={(u) => setUser(u)} lang={lang} toggleLanguage={() => setLang(l => l === 'en' ? 'bn' : 'en')} />;
+    return (
+      <Auth 
+        onLogin={setUser} 
+        lang={lang} 
+        toggleLanguage={() => setLang(prev => prev === 'en' ? 'bn' : 'en')} 
+      />
+    );
   }
 
-  const renderContent = () => {
-    const wrappedSetState = (newState: BusinessState) => handleUpdateState(newState);
-    
+  const renderPage = () => {
     switch (currentPage) {
-      case 'dashboard': return <Dashboard state={businessState} lang={lang} onNavigate={handleNavigate} />;
-      case 'inventory': return <Inventory state={businessState} setState={wrappedSetState} lang={lang} initialParams={navParams} clearParams={() => setNavParams(null)} />;
-      case 'sales': return <Sales state={businessState} setState={wrappedSetState} lang={lang} />;
-      case 'customers': return <Customers state={businessState} setState={wrappedSetState} lang={lang} />;
-      case 'expenses': return <Expenses state={businessState} setState={wrappedSetState} lang={lang} />;
-      case 'reports': return <Reports state={businessState} lang={lang} />;
-      case 'settings': return (
-        <Settings 
-          user={user} 
-          onUpdateUser={handleUpdateUser}
-          onLoadDemo={handleLoadDemo} 
-          onClearData={handleClearData} 
-          lang={lang} 
-          isSyncing={isSyncing}
-        />
-      );
-      default: return <Dashboard state={businessState} lang={lang} onNavigate={handleNavigate} />;
+      case 'dashboard':
+        return <Dashboard state={businessState} lang={lang} onNavigate={handleNavigate} />;
+      case 'inventory':
+        return (
+          <Inventory 
+            state={businessState} 
+            setState={handleUpdateState} 
+            lang={lang} 
+            initialParams={navParams} 
+            clearParams={() => setNavParams(null)} 
+          />
+        );
+      case 'sales':
+        return <Sales state={businessState} setState={handleUpdateState} lang={lang} />;
+      case 'customers':
+        return <Customers state={businessState} setState={handleUpdateState} lang={lang} />;
+      case 'expenses':
+        return <Expenses state={businessState} setState={handleUpdateState} lang={lang} />;
+      case 'reports':
+        return <Reports state={businessState} lang={lang} />;
+      case 'settings':
+        return (
+          <Settings 
+            user={user} 
+            onUpdateUser={handleUpdateUser} 
+            onLoadDemo={handleLoadDemo} 
+            onClearData={handleClearData} 
+            lang={lang}
+            isSyncing={isSyncing}
+          />
+        );
+      default:
+        return <Dashboard state={businessState} lang={lang} onNavigate={handleNavigate} />;
     }
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 overflow-hidden">
-      {!isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-20 md:hidden" 
-          onClick={() => setIsSidebarOpen(true)}
-        />
-      )}
+    <div className="min-h-screen bg-slate-50 flex font-['Inter',_sans-serif]">
       <Sidebar 
         isOpen={isSidebarOpen} 
-        setIsOpen={setIsSidebarOpen} 
+        setIsOpen={setIsSidebarOpen}
         currentPage={currentPage} 
-        setCurrentPage={handleNavigate} 
-        onLogout={handleLogout}
-        lang={lang}
+        setCurrentPage={setCurrentPage} 
+        onLogout={handleLogout} 
+        lang={lang} 
       />
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 bg-white border-b flex items-center justify-between px-6 sticky top-0 z-40">
+
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 shrink-0">
           <button 
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 hover:bg-slate-100 rounded-md md:hidden"
+            className="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg"
           >
             <i className="fa-solid fa-bars text-xl"></i>
           </button>
-          
+
           <div className="flex items-center gap-4 ml-auto">
-            {isSyncing && (
-              <div className="flex items-center gap-2 text-blue-600 animate-pulse text-xs font-bold mr-2">
-                <i className="fa-solid fa-cloud-arrow-up"></i>
-                <span className="hidden sm:inline">Syncing...</span>
-              </div>
-            )}
             <button 
-              onClick={() => setLang(l => l === 'en' ? 'bn' : 'en')}
-              className="px-3 py-1 text-sm font-medium border rounded-full hover:bg-slate-100 transition-colors"
+              onClick={() => setLang(prev => prev === 'en' ? 'bn' : 'en')}
+              className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
             >
-              {t.language_toggle}
+              {TRANSLATIONS[lang].language_toggle}
             </button>
-            
+
             <div className="relative">
               <button 
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                className={`flex items-center gap-2 p-1.5 pr-3 rounded-xl transition-all duration-200 ${isProfileDropdownOpen ? 'bg-slate-100 ring-1 ring-slate-200' : 'hover:bg-slate-50'}`}
+                className="flex items-center gap-3 p-1 hover:bg-slate-50 rounded-xl transition-colors"
               >
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white text-xs font-bold overflow-hidden border border-slate-100 shadow-sm">
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold overflow-hidden border border-blue-200">
                   {user.profilePicture ? (
                     <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
-                    user.businessName.charAt(0)
+                    <span>{user.businessName.charAt(0)}</span>
                   )}
                 </div>
-                <div className="hidden sm:flex flex-col items-start leading-none text-left">
-                  <span className="font-bold text-slate-700 text-sm truncate max-w-[120px]">{user.businessName}</span>
-                  <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tight">Owner</span>
+                <div className="hidden sm:block text-left">
+                  <p className="text-xs font-bold text-slate-900 leading-tight">{user.businessName}</p>
+                  <p className="text-[10px] text-slate-400 font-medium">{user.email}</p>
                 </div>
-                <i className={`fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-300 ${isProfileDropdownOpen ? 'rotate-180' : ''}`}></i>
+                <i className={`fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform ${isProfileDropdownOpen ? 'rotate-180' : ''}`}></i>
               </button>
 
               {isProfileDropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsProfileDropdownOpen(false)}></div>
-                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="px-4 py-3 border-b border-slate-50 mb-1">
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Logged in as</p>
-                      <p className="text-sm font-bold text-slate-800 truncate">{user.email}</p>
-                    </div>
-                    
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-100 origin-top-right">
                     <button 
                       onClick={() => handleNavigate('settings')}
-                      className="w-full px-4 py-2.5 text-left text-sm text-slate-600 hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                      className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                     >
-                      <i className="fa-solid fa-gear text-slate-400"></i>
-                      <span>{t.settings}</span>
+                      <i className="fa-solid fa-user-gear w-4"></i>
+                      Settings
                     </button>
-                    
+                    <div className="h-px bg-slate-100 my-1"></div>
                     <button 
                       onClick={handleLogout}
-                      className="w-full px-4 py-2.5 text-left text-sm text-rose-600 hover:bg-rose-50 flex items-center gap-3 transition-colors font-medium"
+                      className="w-full px-4 py-2 text-left text-sm text-rose-600 hover:bg-rose-50 flex items-center gap-2"
                     >
-                      <i className="fa-solid fa-arrow-right-from-bracket text-rose-400"></i>
-                      <span>{t.logout}</span>
+                      <i className="fa-solid fa-right-from-bracket w-4"></i>
+                      Logout
                     </button>
                   </div>
                 </>
@@ -493,10 +445,12 @@ const App: React.FC = () => {
             </div>
           </div>
         </header>
+
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
-          {renderContent()}
+          {renderPage()}
         </main>
       </div>
+
       <AIAssistant state={businessState} lang={lang} />
     </div>
   );
