@@ -20,7 +20,7 @@ const Dashboard: React.FC<Props> = ({ state, lang, onNavigate }) => {
   const totalExpenses = state.expenses.reduce((acc, curr) => acc + curr.amount, 0);
   const inventoryCount = state.inventory.reduce((acc, curr) => acc + curr.quantity, 0);
   const customerCount = state.customers.length;
-  // Fix: Updated to use flatMap to correctly count unique categories across multiple items
+  // Updated to use flatMap for multiple categories
   const categoryCount = new Set(state.inventory.flatMap(i => i.categories).filter(Boolean)).size;
 
   const kpis = [
@@ -80,6 +80,7 @@ const Dashboard: React.FC<Props> = ({ state, lang, onNavigate }) => {
         </div>
         <div className="flex gap-2">
           <button 
+            type="button"
             onClick={() => onNavigate?.('sales')}
             className="px-4 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50 transition-all text-sm shadow-sm"
           >
@@ -87,7 +88,8 @@ const Dashboard: React.FC<Props> = ({ state, lang, onNavigate }) => {
             Last 7 Days
           </button>
           <button 
-            onClick={() => onNavigate?.('inventory')}
+            type="button"
+            onClick={() => onNavigate?.('inventory', { addNew: true })}
             className="px-4 py-2 bg-indigo-600 rounded-xl font-bold text-white hover:bg-indigo-700 transition-all text-sm shadow-lg shadow-indigo-100"
           >
             <i className="fa-solid fa-plus mr-2"></i>
@@ -99,6 +101,7 @@ const Dashboard: React.FC<Props> = ({ state, lang, onNavigate }) => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
         {kpis.map((kpi, idx) => (
           <button 
+            type="button"
             key={idx} 
             onClick={() => onNavigate?.(kpi.target)}
             className="group bg-white p-6 rounded-[24px] shadow-sm border border-slate-100 flex flex-col gap-4 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/5 hover:-translate-y-1 transition-all text-left relative overflow-hidden"
@@ -171,7 +174,6 @@ const Dashboard: React.FC<Props> = ({ state, lang, onNavigate }) => {
                     </div>
                     <div>
                       <p className="font-bold text-slate-800 text-sm truncate max-w-[120px]">{item.name}</p>
-                      {/* Fix: join multiple categories for display */}
                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{item.categories.join(', ')}</p>
                     </div>
                   </div>
@@ -192,7 +194,8 @@ const Dashboard: React.FC<Props> = ({ state, lang, onNavigate }) => {
           </div>
 
           <button 
-            onClick={() => onNavigate?.('inventory')}
+            type="button"
+            onClick={() => onNavigate?.('inventory', { addNew: true })}
             className="mt-8 w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-sm hover:bg-slate-800 transition-all flex items-center justify-center gap-2 group"
           >
             <span>Manage Inventory</span>

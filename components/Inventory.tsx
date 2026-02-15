@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { BusinessState, Language, Product } from '../types';
 import { TRANSLATIONS, PRODUCT_CATEGORIES } from '../constants';
@@ -25,8 +24,16 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
   });
   const [catInput, setCatInput] = useState('');
 
-  // Handle deep linking/navigation parameters (Auto-edit product from Dashboard)
+  // Handle deep linking/navigation parameters
   useEffect(() => {
+    if (initialParams?.addNew) {
+      const timer = setTimeout(() => {
+        openAddModal();
+        clearParams?.();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+    
     if (initialParams?.editId && state.inventory.length > 0) {
       const product = state.inventory.find(p => p.id === initialParams.editId);
       if (product) {
@@ -107,10 +114,22 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
   const handleDelete = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
     e.stopPropagation();
-    if (window.confirm('Are you sure you want to delete this product?')) {
+    if (window.confirm(lang === 'bn' ? 'আপনি কি এই পণ্যটি মুছে ফেলতে চান?' : 'Are you sure you want to delete this product?')) {
       setState({
         ...state,
         inventory: state.inventory.filter(p => p.id !== id)
+      });
+    }
+  };
+
+  const handleClearAll = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const msg = lang === 'bn' ? 'আপনি কি নিশ্চিত যে আপনি ইনভেন্টরির সব পণ্য মুছে ফেলতে চান?' : 'Are you sure you want to clear the entire inventory?';
+    if (window.confirm(msg)) {
+      setState({
+        ...state,
+        inventory: []
       });
     }
   };
@@ -201,6 +220,16 @@ const Inventory: React.FC<Props> = ({ state, setState, lang, initialParams, clea
           >
             <i className="fa-solid fa-filter mr-2"></i>
             {t.low_stock}
+          </button>
+
+          <button 
+            type="button"
+            onClick={handleClearAll}
+            disabled={state.inventory.length === 0}
+            className="flex items-center justify-center gap-2 border-2 border-rose-100 text-rose-600 px-4 py-2 rounded-lg font-bold hover:bg-rose-50 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <i className="fa-solid fa-trash-can"></i>
+            {lang === 'bn' ? 'সব মুছুন' : 'Clear All'}
           </button>
 
           <button 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Language, User, BusinessState, Product, Sale, Customer, Expense
@@ -328,7 +327,12 @@ const App: React.FC = () => {
     if (!user) return;
     
     const userId = user.id;
-    if (window.confirm("Are you sure? This will delete all records from the database.")) {
+    // Primary safety check
+    const confirmMsg = lang === 'bn' 
+      ? "আপনি কি নিশ্চিত? এটি আপনার ডাটাবেস থেকে সব রেকর্ড মুছে ফেলবে এবং এই কাজ আর ফিরিয়ে আনা যাবে না।" 
+      : "Are you sure? This will delete ALL records from the database. This action cannot be undone.";
+
+    if (window.confirm(confirmMsg)) {
       setIsSyncing(true);
       try {
         if (!userId.startsWith('demo-')) {

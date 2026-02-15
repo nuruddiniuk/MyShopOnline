@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { User, Language } from '../types';
 import { TRANSLATIONS } from '../constants';
@@ -89,11 +88,10 @@ const Settings: React.FC<Props> = ({ user, onUpdateUser, onLoadDemo, onClearData
   };
 
   const handleClear = () => {
-    if (window.confirm("Are you sure you want to clear all business data? This action cannot be undone.")) {
-      onClearData();
-      setShowStatus('cleared');
-      setTimeout(() => setShowStatus(null), 3000);
-    }
+    // Confirmation is now handled centrally in App.tsx for consistency
+    onClearData();
+    setShowStatus('cleared');
+    setTimeout(() => setShowStatus(null), 3000);
   };
 
   const handleLoad = () => {
@@ -125,11 +123,11 @@ const Settings: React.FC<Props> = ({ user, onUpdateUser, onLoadDemo, onClearData
         <div className="p-6">
           <div className="flex flex-col sm:flex-row items-center gap-6 mb-8">
             <div className="relative group">
-              <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-slate-50 shadow-inner bg-slate-100 flex items-center justify-center">
+              <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-slate-50 shadow-inner bg-slate-100 flex items-center justify-center text-slate-400">
                 {user.profilePicture ? (
                   <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-3xl font-bold text-slate-400">{user.businessName.charAt(0)}</span>
+                  <span className="text-3xl font-bold">{user.businessName.charAt(0)}</span>
                 )}
               </div>
               <button 
@@ -222,7 +220,7 @@ const Settings: React.FC<Props> = ({ user, onUpdateUser, onLoadDemo, onClearData
         <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
           <div>
             <h3 className="text-lg font-bold text-slate-800">{t.demo_data}</h3>
-            <p className="text-sm text-slate-500 mt-1">Populate or clear your local database for testing</p>
+            <p className="text-sm text-slate-500 mt-1">Populate or clear your database</p>
           </div>
           <div className="flex items-center gap-3">
             {showStatus && (
